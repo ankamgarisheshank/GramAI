@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: gramai_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gramai_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gramai_password}
+      POSTGRES_DB: ${POSTGRES_DB:-gramai_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gramai_user} -d ${POSTGRES_DB:-gramai_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: gramai_vector_store
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  chroma_data:

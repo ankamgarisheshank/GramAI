@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Noto Sans Telugu", sans-serif;
+
+  /* Premium UI Color Palette */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+@layer base {
+  :root {
+    /* Soft Stone/Warm Gray for backgrounds (never pure white) */
+    --background: #F5F5F4; /* stone-100 */
+    --foreground: #1C1917; /* stone-900 */
+
+    --card: #FAFAF9; /* stone-50 */
+    --card-foreground: #1C1917;
+
+    --popover: #FAFAF9;
+    --popover-foreground: #1C1917;
+
+    /* Primary: Forest Green / Emerald */
+    --primary: #064E3B; /* emerald-900 */
+    --primary-foreground: #ECFDF5; /* emerald-50 */
+
+    /* Secondary: Blue */
+    --secondary: #3B82F6;
+    --secondary-foreground: #EFF6FF;
+
+    /* Muted: Warm Gray */
+    --muted: #E7E5E4; /* stone-200 */
+    --muted-foreground: #57534E; /* stone-500 */
+
+    /* Accent: Golden Yellow */
+    --accent: #F59E0B;
+    --accent-foreground: #FEF3C7;
+
+    --destructive: #EF4444;
+    --destructive-foreground: #FEF2F2;
+
+    --border: #D6D3D1; /* stone-300 */
+    --input: #D6D3D1;
+    --ring: #064E3B; /* Forest green ring */
+
+    --radius: 1rem; /* Highly rounded cards for friendly feel */
+  }
+
+  .dark {
+    /* Deep forest/stone for dark mode */
+    --background: #1C1917; /* stone-900 */
+    --foreground: #F5F5F4; /* stone-100 */
+
+    --card: #292524; /* stone-800 */
+    --card-foreground: #F5F5F4;
+
+    --popover: #292524;
+    --popover-foreground: #F5F5F4;
+
+    /* Primary: Lighter Emerald for contrast */
+    --primary: #10B981; /* emerald-500 */
+    --primary-foreground: #022C22; /* emerald-950 */
+
+    --secondary: #3B82F6;
+    --secondary-foreground: #EFF6FF;
+
+    --muted: #44403C; /* stone-700 */
+    --muted-foreground: #A8A29E; /* stone-400 */
+
+    --accent: #F59E0B;
+    --accent-foreground: #451A03;
+
+    --destructive: #EF4444;
+    --destructive-foreground: #FEF2F2;
+
+    --border: #44403C;
+    --input: #44403C;
+    --ring: #10B981;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
