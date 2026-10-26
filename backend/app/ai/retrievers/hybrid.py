@@ -9,7 +9,10 @@ class HybridRetriever:
 
     def search(self, query: str, metadata_filter: dict = None) -> list:
         logger.info(f"Performing hybrid search for query: {query}")
-        # In a real implementation, you apply the metadata filter to the Chroma retriever
-        retriever = self.vector_store.get_retriever()
-        docs = retriever.invoke(query)
-        return docs
+        try:
+            retriever = self.vector_store.get_retriever()
+            if retriever:
+                return retriever.invoke(query)
+        except Exception as e:
+            logger.warning(f"Vector search failed: {e}")
+        return []
