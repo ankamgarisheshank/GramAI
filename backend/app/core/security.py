@@ -1,20 +1,22 @@
 from datetime import datetime, timedelta, timezone
-from passlib.context import CryptContext
+import bcrypt
 from typing import Any, Union, Optional
 import jwt
 
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
-        return pwd_context.verify(str(plain_password)[:72], hashed_password)
+        pwd_bytes = str(plain_password).encode("utf-8")[:72]
+        hash_bytes = str(hashed_password).encode("utf-8")
+        return bcrypt.checkpw(pwd_bytes, hash_bytes)
     except Exception:
         return False
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(str(password)[:72])
+    pwd_bytes = str(password).encode("utf-8")[:72]
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
 
 def create_access_token(subject: Union[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     if expires_delta:
