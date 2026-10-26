@@ -22,7 +22,13 @@ async def app_exception_handler(request: Request, exc: AppException):
     if exc.payload and isinstance(exc.payload, dict):
         response.update(exc.payload)
         
-    return JSONResponse(status_code=exc.status_code, content=response)
+    origin = request.headers.get("origin")
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        
+    return JSONResponse(status_code=exc.status_code, content=response, headers=headers)
 
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors = [
@@ -34,12 +40,24 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         message="Validation Failed",
         errors=errors
     )
-    return JSONResponse(status_code=422, content=response.model_dump())
+    origin = request.headers.get("origin")
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        
+    return JSONResponse(status_code=422, content=response.model_dump(), headers=headers)
 
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled Exception: {str(exc)}", exc_info=True)
     response = StandardResponse(
         success=False,
-        message="Internal Server Error"
+        message=f"Internal Server Error: {str(exc)}"
     )
-    return JSONResponse(status_code=500, content=response.model_dump())
+    origin = request.headers.get("origin")
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        
+    return JSONResponse(status_code=500, content=response.model_dump(), headers=headers)

@@ -1,5 +1,9 @@
+import os
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+DEFAULT_DB_FILE = BASE_DIR / "gramai_local.db"
 
 class DatabaseSettings(BaseSettings):
     POSTGRES_USER: str = "postgres"
@@ -22,13 +26,12 @@ class DatabaseSettings(BaseSettings):
 
     @property
     def database_url(self):
-        return self.DATABASE_URL or (
-            f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
-            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-        )
-
+        env_url = os.getenv("DATABASE_URL") or self.DATABASE_URL
+        if env_url:
+            if env_url.startswith("postgres://"):
+                env_url = env_url.replace("postgres://", "postgresql://", 1)
+            return env_url
+        return f"sqlite:///{DEFAULT_DB_FILE}"
 
 settings = DatabaseSettings()
-
-if not settings.DATABASE_URL:
-    settings.DATABASE_URL = settings.database_url
+settings.DATABASE_URL = settings.database_url
