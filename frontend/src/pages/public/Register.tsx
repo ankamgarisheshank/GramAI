@@ -112,9 +112,10 @@ export const Register = () => {
       navigate('/login', { state: { message: 'Registration successful. Please log in.' } });
     } catch (err: any) {
       if (err.message === 'Network Error' || !err.response) {
-        setError(`Network Error: Cannot connect to backend API at ${api.defaults.baseURL}. If this is a live deployment, please ensure your Render backend is running and VITE_API_URL is set in Vercel.`);
+        setError(`Network Error: Cannot connect to backend API at ${api.defaults.baseURL}. If this is a live deployment, Render may be waking up from sleep (cold start takes ~45s) or restarting. Please try again in a few moments.`);
       } else {
-        setError(err.response?.data?.detail || err.message || 'Registration failed');
+        const backendMessage = err.response?.data?.message || err.response?.data?.detail;
+        setError(backendMessage || err.message || 'Registration failed');
       }
     } finally {
       setLoading(false);
@@ -138,7 +139,7 @@ export const Register = () => {
         
         navigate('/dashboard');
       } catch (err: any) {
-        setError(err.response?.data?.detail || 'Google Login Failed');
+        setError(err.response?.data?.message || err.response?.data?.detail || 'Google Login Failed');
       } finally {
         setLoading(false);
       }
