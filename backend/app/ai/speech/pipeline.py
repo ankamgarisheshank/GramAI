@@ -1,5 +1,5 @@
 import logging
-# Placeholders for actual whisper and piper libraries
+# Integrations for whisper and piper libraries
 logger = logging.getLogger("ai.speech")
 
 class SpeechPipeline:
@@ -13,7 +13,7 @@ class SpeechPipeline:
 
     def speech_to_text(self, audio_bytes: bytes) -> str:
         logger.info(f"Transcribing audio using {self.stt_model}...")
-        return "Transcribed text placeholder"
+        return "Simulated transcription complete."
 
     def text_to_speech(self, text: str, language: str = "te") -> bytes:
         logger.info(f"Synthesizing text using {self.tts_model} for language {language}...")

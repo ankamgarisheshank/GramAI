@@ -10,7 +10,8 @@ from app.models.auth import User
 
 router = APIRouter()
 
-@router.get("/", response_model=StandardResponse[List[NotificationResponse]])
+@router.get("", response_model=StandardResponse[List[NotificationResponse]])
+@router.get("/", response_model=StandardResponse[List[NotificationResponse]], include_in_schema=False)
 def get_notifications(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     service = NotificationService(db)
     notifs = service.get_user_notifications(current_user.id)

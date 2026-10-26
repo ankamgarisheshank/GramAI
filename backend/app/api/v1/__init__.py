@@ -10,3 +10,6 @@ from . import chat
 from . import notifications
 from . import admin
 from . import analytics
+from . import applications
+from . import officer
+

@@ -8,43 +8,43 @@ const features = [
     title: "Native Voice Assistant",
     description: "Speak in natural Telugu or English. Our AI uses Whisper to transcribe and Piper to synthesize natural responses.",
     icon: Mic,
-    color: "text-blue-500",
-    bg: "bg-blue-500/10"
+    color: "text-primary",
+    bg: "bg-primary/10"
   },
   {
     title: "Semantic Scheme Matching",
     description: "We don't just use keyword search. Our RAG engine understands the meaning behind your query to find the perfect scheme.",
     icon: Search,
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/10"
+    color: "text-secondary",
+    bg: "bg-secondary/10"
   },
   {
     title: "Instant Eligibility Engine",
     description: "Provide your profile details once, and instantly see a personalized dashboard of schemes you definitely qualify for.",
     icon: Zap,
-    color: "text-amber-500",
-    bg: "bg-amber-500/10"
+    color: "text-accent",
+    bg: "bg-accent/10"
   },
   {
     title: "Privacy First",
     description: "Your data is secure. We use enterprise-grade PostgreSQL and strictly adhere to data protection guidelines.",
     icon: Shield,
-    color: "text-purple-500",
-    bg: "bg-purple-500/10"
+    color: "text-success",
+    bg: "bg-success/10"
   },
   {
     title: "Always Up-to-Date",
     description: "Our knowledge base is constantly synced with official government releases, ensuring you never miss a new initiative.",
     icon: Clock,
-    color: "text-rose-500",
-    bg: "bg-rose-500/10"
+    color: "text-warning",
+    bg: "bg-warning/10"
   },
   {
     title: "Multilingual Documents",
     description: "Read scheme guidelines, required documents, and application steps in clear, translated Telugu.",
     icon: BookOpen,
-    color: "text-cyan-500",
-    bg: "bg-cyan-500/10"
+    color: "text-info",
+    bg: "bg-info/10"
   }
 ];
 

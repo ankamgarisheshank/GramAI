@@ -30,11 +30,11 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id", ondelete="RESTRICT"))
     role: Mapped["Role"] = relationship(back_populates="users")
     
-    profile: Mapped["CitizenProfile"] = relationship(back_populates="user", uselist=False)
-    audit_logs: Mapped[List["AuditLog"]] = relationship(back_populates="user")
-    saved_schemes: Mapped[List["SavedSchemes"]] = relationship(back_populates="user")
-    notifications: Mapped[List["Notification"]] = relationship(back_populates="user")
-    conversations: Mapped[List["Conversation"]] = relationship(back_populates="user")
+    profile: Mapped["CitizenProfile"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
+    audit_logs: Mapped[List["AuditLog"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    saved_schemes: Mapped[List["SavedSchemes"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    notifications: Mapped[List["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    conversations: Mapped[List["Conversation"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 class AuditLog(Base, TimestampMixin):
     __tablename__ = "audit_logs"

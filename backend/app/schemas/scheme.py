@@ -28,8 +28,19 @@ class SchemeUpdate(BaseModel):
     name: Optional[str] = None
     department: Optional[str] = None
     description: Optional[str] = None
+    benefits: Optional[str] = None
+    required_documents: Optional[str] = None
+    application_process: Optional[str] = None
+    official_link: Optional[str] = None
     status: Optional[str] = None
+    
+    beneficiary_type: Optional[str] = None
+    income_limit: Optional[float] = None
+    age_limit_min: Optional[int] = None
+    age_limit_max: Optional[int] = None
+    occupation_requirement: Optional[str] = None
     category_id: Optional[int] = None
+    district_applicability_id: Optional[int] = None
 
 class SchemeResponse(SchemeBase):
     id: UUID
@@ -49,3 +60,4 @@ class SavedSchemeResponse(BaseModel):
 
     class Config:
         from_attributes = True
+

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { Leaf, Globe, Moon, Sun, Menu, X } from 'lucide-react';
+import { Leaf, Globe, Moon, Sun, Menu, X, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GovEmblem } from '../components/custom/GovEmblem';
 
 const navLinks = [
   { name: 'Features', path: '/features' },
@@ -14,7 +15,9 @@ export const PublicLayout = () => {
   const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  });
   const [language, setLanguage] = useState<'EN' | 'TE'>('EN');
 
   useEffect(() => {
@@ -35,18 +38,27 @@ export const PublicLayout = () => {
 
   return (
     <div className={`min-h-screen flex flex-col bg-background font-sans text-foreground selection:bg-primary/20 selection:text-primary ${theme}`}>
+      {/* Gov Banner Strip */}
+      <div className="w-full bg-muted/30 border-b border-border py-1.5 px-4 text-xs text-muted-foreground flex items-center justify-center md:justify-end gap-2">
+        <Building2 className="h-3.5 w-3.5" />
+        <span>Official Portal of the Government of Telangana</span>
+      </div>
+
       {/* Sticky Navigation */}
       <header 
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-          isScrolled ? 'bg-background/90 backdrop-blur-md shadow-sm border-b' : 'bg-transparent py-2'
+        className={`sticky top-0 w-full z-50 transition-all duration-300 ${
+          isScrolled ? 'bg-background/95 backdrop-blur-md shadow-sm border-b' : 'bg-background/80 backdrop-blur-sm border-b'
         }`}
       >
         <div className="container mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-emerald-500 text-white shadow-sm">
-              <Leaf className="h-5 w-5" />
+          <Link to="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <Leaf className="h-6 w-6" />
             </div>
-            <span className="text-2xl font-bold tracking-tight text-primary dark:text-emerald-400">GramAI</span>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold font-heading tracking-tight text-foreground leading-tight">Gram<span className="text-primary">AI</span></span>
+              <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">Government of Telangana</span>
+            </div>
           </Link>
           
           {/* Desktop Nav */}
@@ -128,7 +140,7 @@ export const PublicLayout = () => {
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative pt-16">
+      <main className="flex-1 flex flex-col relative">
         <Outlet />
       </main>
 
@@ -179,7 +191,7 @@ export const PublicLayout = () => {
           <div className="border-t border-stone-800 mt-16 pt-8 flex flex-col md:flex-row items-center justify-between text-stone-500 text-sm">
             <p>&copy; {new Date().getFullYear()} GramAI. Built for Telangana.</p>
             <div className="flex items-center gap-2 mt-4 md:mt-0">
-              <span>Made with</span> <span className="text-red-500">♥</span> <span>in Hyderabad</span>
+              <span>Made with</span> <span className="text-destructive">♥</span> <span>in Hyderabad</span>
             </div>
           </div>
         </div>

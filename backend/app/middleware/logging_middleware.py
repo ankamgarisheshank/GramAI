@@ -11,7 +11,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
         start_time = time.time()
         
-        # Set dummy correlation_id for standard format
+        # Inject correlation_id for structured logging
         extra = {"correlation_id": request_id}
         logger = logging.getLogger("gramai")
         logger = logging.LoggerAdapter(logger, extra)

@@ -1,14 +1,23 @@
-from fastapi import FastAPI
+import logging
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.exceptions import AppException, app_exception_handler, validation_exception_handler, global_exception_handler
 from app.middleware.logging_middleware import RequestLoggingMiddleware
 
 from app.api.v1 import (
     auth, health, users, profiles, schemes, recommendations, 
-    agriculture, voice, chat, notifications, admin, analytics
+    agriculture, voice, chat, notifications, admin, analytics, applications, officer
 )
+
+
+limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
+
+from slowapi.middleware import SlowAPIMiddleware
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -17,17 +26,21 @@ def create_app() -> FastAPI:
         openapi_url=f"{settings.API_V1_STR}/openapi.json"
     )
 
+    app.state.limiter = limiter
+    app.add_middleware(SlowAPIMiddleware)
+
     # Middlewares
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         allow_headers=["*"],
     )
     app.add_middleware(RequestLoggingMiddleware)
 
     # Exception Handlers
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     app.add_exception_handler(AppException, app_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(Exception, global_exception_handler)
@@ -45,7 +58,10 @@ def create_app() -> FastAPI:
     app.include_router(notifications.router, prefix=f"{settings.API_V1_STR}/notifications", tags=["Notifications"])
     app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["Admin"])
     app.include_router(analytics.router, prefix=f"{settings.API_V1_STR}/analytics", tags=["Analytics"])
+    app.include_router(applications.router, prefix=f"{settings.API_V1_STR}/applications", tags=["Applications"])
+    app.include_router(officer.router, prefix=f"{settings.API_V1_STR}/officer", tags=["Officer"])
 
     return app
+
 
 app = create_app()

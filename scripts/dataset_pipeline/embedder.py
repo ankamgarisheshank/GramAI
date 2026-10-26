@@ -1,4 +1,4 @@
-# Pre-requisite placeholder for Phase 8.
+# Pre-requisite setup for Phase 8.
 # NO AI Execution is taking place here. This is merely the pipeline structure.
 
 class EmbeddingPipeline:

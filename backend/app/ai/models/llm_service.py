@@ -26,4 +26,6 @@ class LLMService:
 
     def generate(self, prompt: str) -> str:
         logger.info("Generating LLM response...")
+        if not self._llm:
+            raise RuntimeError("Ollama LLM is not initialized")
         return self._llm.invoke(prompt)

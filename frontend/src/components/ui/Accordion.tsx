@@ -101,7 +101,7 @@ export function AccordionContent({
   className,
   children,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: import("framer-motion").HTMLMotionProps<"div">) {
   const ctx = React.useContext(AccordionContext)
   const itemCtx = React.useContext(AccordionItemContext)
   if (!ctx || !itemCtx) throw new Error("Missing Accordion context")
@@ -123,7 +123,7 @@ export function AccordionContent({
           className="overflow-hidden"
           {...props}
         >
-          <div className={cn("pb-4 pt-0", className)}>{children}</div>
+          <div className={cn("pb-4 pt-0", className)}>{children as React.ReactNode}</div>
         </motion.div>
       )}
     </AnimatePresence>

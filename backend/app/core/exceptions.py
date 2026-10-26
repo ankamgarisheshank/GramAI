@@ -7,17 +7,22 @@ import logging
 logger = logging.getLogger("gramai")
 
 class AppException(Exception):
-    def __init__(self, message: str, status_code: int = 400):
+    def __init__(self, message: str, status_code: int = 400, payload: dict = None):
         self.message = message
         self.status_code = status_code
+        self.payload = payload
 
 async def app_exception_handler(request: Request, exc: AppException):
     logger.warning(f"AppException: {exc.message}")
     response = StandardResponse(
         success=False,
         message=exc.message
-    )
-    return JSONResponse(status_code=exc.status_code, content=response.model_dump())
+    ).model_dump()
+    
+    if exc.payload and isinstance(exc.payload, dict):
+        response.update(exc.payload)
+        
+    return JSONResponse(status_code=exc.status_code, content=response)
 
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors = [

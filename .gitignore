@@ -1,4 +1,8 @@
+node_modules/
 venv/
+backend/venv/
+dist/
+scratch/
 __pycache__/
 *.pyc
 .env
@@ -8,3 +12,4 @@ __pycache__/
 .idea/
 .vscode/
 .DS_Store
+backend/storage/

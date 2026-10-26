@@ -1,10 +1,15 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { User } from "../api/auth";
+
+import { queryClient } from "../lib/queryClient";
 
 interface AuthState {
   token: string | null;
-  user: any | null;
-  setAuth: (token: string, user: any) => void;
+  user: User | null;
+
+  setAuth: (token: string, user: User) => void;
+
   logout: () => void;
 }
 
@@ -13,9 +18,31 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       token: null,
       user: null,
-      setAuth: (token, user) => set({ token, user }),
-      logout: () => set({ token: null, user: null }),
+
+      setAuth: (token, user) =>
+        set({
+          token,
+          user,
+        }),
+
+      logout: () => {
+        try {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('user_type');
+          localStorage.removeItem('auth-storage');
+          sessionStorage.clear();
+          queryClient.clear();
+        } catch (e) {
+          console.warn('Storage cleanup error:', e);
+        }
+        set({
+          token: null,
+          user: null,
+        });
+      },
     }),
-    { name: 'auth-storage' }
+    {
+      name: "auth-storage",
+    }
   )
 );

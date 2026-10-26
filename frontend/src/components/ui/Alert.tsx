@@ -2,17 +2,19 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils"
 import { motion } from "framer-motion"
+import type { HTMLMotionProps } from "framer-motion"
 
 const alertVariants = cva(
-  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
+  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground shadow-sm",
   {
     variants: {
       variant: {
         default: "bg-background text-foreground",
         destructive:
-          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
-        success: "border-emerald-500/50 text-emerald-600 dark:text-emerald-400 [&>svg]:text-emerald-600 dark:[&>svg]:text-emerald-400",
-        warning: "border-amber-500/50 text-amber-600 dark:text-amber-400 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-400",
+          "border-destructive/50 text-destructive bg-destructive/5 [&>svg]:text-destructive",
+        success: "border-success/50 text-success bg-success/5 [&>svg]:text-success",
+        warning: "border-warning/50 text-warning bg-warning/5 [&>svg]:text-warning",
+        info: "border-info/50 text-info bg-info/5 [&>svg]:text-info",
       },
     },
     defaultVariants: {
@@ -23,7 +25,7 @@ const alertVariants = cva(
 
 const Alert = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
+  HTMLMotionProps<"div"> & VariantProps<typeof alertVariants>
 >(({ className, variant, ...props }, ref) => (
   <motion.div
     initial={{ opacity: 0, y: -10 }}

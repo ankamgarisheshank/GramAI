@@ -1,9 +1,10 @@
 import * as React from "react"
 import { cn } from "../../lib/utils"
 import { motion } from "framer-motion"
-import { LucideIcon } from "lucide-react"
+import type { HTMLMotionProps } from "framer-motion"
+import type { LucideIcon } from "lucide-react"
 
-interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
+interface EmptyStateProps extends HTMLMotionProps<"div"> {
   icon: LucideIcon
   title: string
   description?: string

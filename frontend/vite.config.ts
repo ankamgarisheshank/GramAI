@@ -7,4 +7,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  build: {
+    // Rely on Vite default chunking to prevent TS definition issues with Rollup
+  },
 })

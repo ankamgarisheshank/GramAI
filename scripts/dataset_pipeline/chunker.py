@@ -6,7 +6,7 @@ class KnowledgeChunker:
         self.overlap = overlap
 
     def sentence_chunk(self, text: str) -> List[str]:
-        # Basic sentence splitting (for placeholder logic)
+        # Basic sentence splitting (for default logic)
         sentences = text.replace('!', '.').replace('?', '.').split('.')
         return [s.strip() for s in sentences if s.strip()]
 

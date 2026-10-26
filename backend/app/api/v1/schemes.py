@@ -40,3 +40,16 @@ def unsave_scheme(scheme_id: uuid.UUID, current_user: User = Depends(get_current
     service = SchemeService(db)
     result = service.unsave_scheme(current_user.id, scheme_id)
     return StandardResponse(message="Scheme removed", data=result)
+
+@router.get("/applications/me", response_model=StandardResponse[list])
+def get_my_applications(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    service = SchemeService(db)
+    apps = service.get_applications(current_user.id)
+    return StandardResponse(data=apps)
+
+@router.post("/{scheme_id}/apply", response_model=StandardResponse[dict])
+def apply_scheme(scheme_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    service = SchemeService(db)
+    result = service.apply_scheme(current_user.id, scheme_id)
+    return StandardResponse(message="Applied successfully", data=result)
+

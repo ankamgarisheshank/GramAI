@@ -1,6 +1,7 @@
 import * as React from "react"
 import { cn } from "../../lib/utils"
 import { motion } from "framer-motion"
+import type { HTMLMotionProps } from "framer-motion"
 
 interface TabsProps {
   defaultValue: string
@@ -82,7 +83,7 @@ export function TabsContent({
   className,
   children,
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & { value: string }) {
+}: HTMLMotionProps<"div"> & { value: string }) {
   const context = React.useContext(TabsContext)
   if (!context) throw new Error("TabsContent must be used within Tabs")
 

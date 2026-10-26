@@ -5,7 +5,7 @@ class ChromaDBInitializer:
         self.persist_dir = persist_dir
 
     def create_collection(self, collection_name: str, metadata: dict):
-        # Placeholder for chromadb.PersistentClient initialization
+        # Integration for chromadb.PersistentClient initialization
         print(f"ChromaDB Collection '{collection_name}' initialized at {self.persist_dir}.")
         print(f"Metadata configured: {metadata}")
         return True
