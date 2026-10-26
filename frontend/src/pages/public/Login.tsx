@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Alert, AlertDescription } from '../../components/ui/Alert';
 import { Leaf, Eye, EyeOff, ShieldCheck, Lock, Fingerprint } from 'lucide-react';
 import { AuthAPI } from '../../api/auth';
+import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import { GovEmblem } from '../../components/custom/GovEmblem';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -66,7 +67,11 @@ export const Login = () => {
       const response = await AuthAPI.login({ username, password });
       await handleAuthSuccess(response.data.access_token);
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Login failed');
+      if (err.message === 'Network Error' || !err.response) {
+        setError(`Network Error: Cannot connect to backend API at ${api.defaults.baseURL}. If this is a live deployment, please ensure your Render backend is running and VITE_API_URL is set in Vercel.`);
+      } else {
+        setError(err.response?.data?.detail || err.message || 'Login failed');
+      }
     } finally {
       setLoading(false);
     }

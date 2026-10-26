@@ -11,6 +11,7 @@ import {
   FileText, CheckCircle2 
 } from 'lucide-react';
 import { AuthAPI } from '../../api/auth';
+import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import { GovEmblem } from '../../components/custom/GovEmblem';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -110,7 +111,11 @@ export const Register = () => {
       
       navigate('/login', { state: { message: 'Registration successful. Please log in.' } });
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Registration failed');
+      if (err.message === 'Network Error' || !err.response) {
+        setError(`Network Error: Cannot connect to backend API at ${api.defaults.baseURL}. If this is a live deployment, please ensure your Render backend is running and VITE_API_URL is set in Vercel.`);
+      } else {
+        setError(err.response?.data?.detail || err.message || 'Registration failed');
+      }
     } finally {
       setLoading(false);
     }
