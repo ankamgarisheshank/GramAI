@@ -12,7 +12,14 @@ class AppSettings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     ALLOWED_HOSTS: list[str] = ["*"]
-    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    CORS_ORIGINS: list[str] = [
+        origin.strip()
+        for origin in os.getenv(
+            "CORS_ORIGINS",
+            "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,*"
+        ).split(",")
+        if origin.strip()
+    ]
     
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
 
