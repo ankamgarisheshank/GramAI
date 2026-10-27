@@ -123,6 +123,15 @@ class AnalyticsService:
         active_users_24h = len(active_event_users | active_app_users | active_reg_users)
 
         # Analytics Events Metrics
+        total_page_views = 0
+        unique_sessions_count = 0
+        scheme_detail_views = 0
+        apply_clicks = 0
+        external_link_clicks = 0
+        engagement_by_event = {}
+        top_viewed_schemes = []
+        tracking_started_at = now.isoformat()
+
         try:
             total_page_views = self.db.query(AnalyticsEvent).filter(AnalyticsEvent.event_type == "page_view").count()
             unique_sessions_count = (
@@ -151,12 +160,19 @@ class AnalyticsService:
                 .limit(5)
                 .all()
             )
-            top_viewed_schemes = []
             for s_id, total_interactions in top_schemes_raw:
-                scheme_obj = self.db.query(Scheme).filter(Scheme.id == s_id).first()
-                scheme_name = scheme_obj.name if scheme_obj else f"Scheme #{s_id}"
-                views = self.db.query(AnalyticsEvent).filter(AnalyticsEvent.scheme_id == s_id, AnalyticsEvent.event_type == "scheme_detail_view").count()
-                clicks = self.db.query(AnalyticsEvent).filter(AnalyticsEvent.scheme_id == s_id, AnalyticsEvent.event_type == "apply_button_click").count()
+                scheme_name = f"Scheme #{s_id}"
+                if s_id:
+                    try:
+                        parsed_uuid = uuid.UUID(str(s_id))
+                        scheme_obj = self.db.query(Scheme).filter(Scheme.id == parsed_uuid).first()
+                        if scheme_obj and scheme_obj.name:
+                            scheme_name = scheme_obj.name
+                    except (ValueError, TypeError, Exception):
+                        pass
+
+                views = self.db.query(AnalyticsEvent).filter(AnalyticsEvent.scheme_id == str(s_id), AnalyticsEvent.event_type == "scheme_detail_view").count()
+                clicks = self.db.query(AnalyticsEvent).filter(AnalyticsEvent.scheme_id == str(s_id), AnalyticsEvent.event_type == "apply_button_click").count()
                 top_viewed_schemes.append({
                     "scheme_id": str(s_id),
                     "scheme_name": scheme_name,
@@ -165,17 +181,10 @@ class AnalyticsService:
                 })
 
             earliest_event = self.db.query(AnalyticsEvent.created_at).order_by(AnalyticsEvent.created_at.asc()).first()
-            tracking_started_at = earliest_event[0].isoformat() if earliest_event and earliest_event[0] else now.isoformat()
+            if earliest_event and earliest_event[0]:
+                tracking_started_at = earliest_event[0].isoformat()
         except Exception:
-            # Table might not exist yet before first migration
-            total_page_views = 0
-            unique_sessions_count = 0
-            scheme_detail_views = 0
-            apply_clicks = 0
-            external_link_clicks = 0
-            top_viewed_schemes = []
-            engagement_by_event = {}
-            tracking_started_at = now.isoformat()
+            pass
 
         status_counts = {
             "DRAFT": draft_applications,
