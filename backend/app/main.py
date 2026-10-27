@@ -61,6 +61,17 @@ def create_app() -> FastAPI:
     app.include_router(applications.router, prefix=f"{settings.API_V1_STR}/applications", tags=["Applications"])
     app.include_router(officer.router, prefix=f"{settings.API_V1_STR}/officer", tags=["Officer"])
 
+    @app.on_event("startup")
+    def on_startup():
+        try:
+            from app.db.engine import engine
+            from app.db.base_model import Base
+            import app.models # ensure all models are imported
+            Base.metadata.create_all(bind=engine, checkfirst=True)
+            logging.getLogger("gramai").info("Database schemas verified.")
+        except Exception as e:
+            logging.getLogger("gramai").warning(f"Startup schema check warning: {e}")
+
     return app
 
 

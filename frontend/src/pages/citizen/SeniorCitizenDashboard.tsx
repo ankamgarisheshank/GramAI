@@ -13,27 +13,22 @@ import {
   HelpCircle, CreditCard, Sparkles
 } from 'lucide-react';
 
+import { useNavigate } from 'react-router-dom';
+import { useMyApplications } from '../../hooks/useApplications';
+
 export const SeniorCitizenDashboard = () => {
   const user = useAuthStore(state => state.user);
   const location = useLocation();
+  const navigate = useNavigate();
   
   const { data: schemes, isLoading: schemesLoading } = useSchemes('senior');
+  const { data: myApps, isLoading: appsLoading } = useMyApplications();
 
-  // Mock data for accessibility demonstration
-  const seniorData = {
-    name: 'Srinivasa Rao',
-    id: 'TG-SNR-4890',
-    age: 68,
-    pensionStatus: 'Credited'
-  };
-
-  const applications = [
-    { id: 'AAS-923', name: 'Aasara Pension (Old Age)', status: 'Approved', date: 'Monthly' },
-    { id: 'HLT-102', name: 'Aarogyasri Card Renewal', status: 'Pending', date: 'Oct 15, 2026' }
-  ];
+  const seniorName = user?.email?.split('@')[0] || user?.phone_number || 'Elder Citizen';
+  const seniorId = user?.id ? `TG-SNR-${user.id.slice(0, 6).toUpperCase()}` : 'TG-SNR-4890';
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 font-sans animate-in fade-in duration-700 pb-12">
+    <div className="max-w-6xl mx-auto space-y-6 font-sans animate-in fade-in duration-700 px-4 sm:px-6 lg:px-8 pb-16">
       
       {/* PREMIUM HEADER: High contrast, glassmorphism, dynamic elements */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 bg-gradient-to-br from-amber-600 via-amber-700 to-orange-800 text-white p-6 md:p-8 rounded-[2rem] shadow-2xl relative overflow-hidden border border-amber-400/20 group">
@@ -54,17 +49,17 @@ export const SeniorCitizenDashboard = () => {
           <h1 className="text-3xl md:text-4xl font-bold font-heading leading-tight drop-shadow-lg tracking-tight">
             Namaskaram, <br className="hidden md:block" /> 
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-amber-200">
-              {user?.email?.split('@')[0] || seniorData.name}
+              {seniorName}
             </span>
           </h1>
           <div className="flex flex-wrap items-center gap-3 text-white/95 text-base font-medium mt-2">
             <div className="flex items-center gap-2 bg-black/20 backdrop-blur-xl px-4 py-2 rounded-xl border border-white/10 shadow-inner hover:bg-black/30 transition-colors">
               <ShieldCheck className="h-5 w-5 text-amber-300" />
-              ID: {seniorData.id}
+              ID: {seniorId}
             </div>
             <div className="flex items-center gap-2 bg-black/20 backdrop-blur-xl px-4 py-2 rounded-xl border border-white/10 shadow-inner hover:bg-black/30 transition-colors">
               <MapPin className="h-5 w-5 text-amber-300" />
-              {location.loading ? 'Locating...' : location.address || 'Hyderabad'}
+              {location.loading ? 'Locating...' : location.address || 'Telangana'}
             </div>
           </div>
         </div>
@@ -73,15 +68,20 @@ export const SeniorCitizenDashboard = () => {
           {/* Animated Voice Button */}
           <div className="relative group/btn">
             <div className="absolute -inset-1 bg-gradient-to-r from-amber-200 to-white rounded-2xl blur opacity-30 group-hover/btn:opacity-60 transition duration-1000 group-hover/btn:duration-200 animate-pulse"></div>
-            <Button className="relative w-full md:w-auto bg-white text-amber-800 hover:bg-gray-50 hover:scale-105 active:scale-95 transition-all duration-300 text-lg py-6 px-8 rounded-2xl shadow-xl border border-white/50 flex items-center justify-center font-bold">
+            <Button 
+              onClick={() => navigate('/voice')}
+              className="relative w-full md:w-auto bg-white text-amber-800 hover:bg-gray-50 hover:scale-105 active:scale-95 transition-all duration-300 text-lg py-6 px-8 rounded-2xl shadow-xl border border-white/50 flex items-center justify-center font-bold"
+            >
               <Mic className="mr-3 h-6 w-6 text-amber-600 animate-bounce" /> Tap to Speak
             </Button>
           </div>
           
-          <Button className="w-full md:w-auto bg-red-600 hover:bg-red-700 text-white hover:scale-105 active:scale-95 transition-all duration-300 text-base py-5 px-6 rounded-2xl shadow-lg border border-red-500/50 flex items-center justify-center font-bold overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:animate-[shimmer_1.5s_infinite]"></div>
-            <Phone className="mr-2 h-5 w-5" /> Emergency Help
-          </Button>
+          <a 
+            href="tel:14567" 
+            className="w-full md:w-auto bg-red-600 hover:bg-red-700 text-white hover:scale-105 active:scale-95 transition-all duration-300 text-base py-3 px-6 rounded-2xl shadow-lg border border-red-500/50 flex items-center justify-center font-bold overflow-hidden relative"
+          >
+            <Phone className="mr-2 h-5 w-5" /> Emergency Help (14567)
+          </a>
         </div>
       </div>
 
@@ -168,7 +168,10 @@ export const SeniorCitizenDashboard = () => {
                         {scheme.department}
                       </Badge>
                     </div>
-                    <Button className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-base py-5 px-8 rounded-xl shadow-md hover:shadow-amber-500/25 hover:-translate-y-0.5 transition-all">
+                    <Button 
+                      onClick={() => navigate(`/dashboard/schemes/${scheme.id}`)}
+                      className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-base py-5 px-8 rounded-xl shadow-md hover:shadow-amber-500/25 hover:-translate-y-0.5 transition-all"
+                    >
                       Apply Now
                     </Button>
                   </div>
@@ -193,11 +196,15 @@ export const SeniorCitizenDashboard = () => {
             <h2 className="text-xl font-bold text-foreground mb-6 relative z-10">Quick Actions</h2>
             <div className="grid grid-cols-1 gap-4 relative z-10">
               {[
-                { name: 'Request Medication', icon: Stethoscope, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', hover: 'hover:bg-emerald-500/20 hover:border-emerald-500/40' },
-                { name: 'Bus Pass Renewal', icon: Activity, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', hover: 'hover:bg-blue-500/20 hover:border-blue-500/40' },
-                { name: 'Ask a Question', icon: HelpCircle, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20', hover: 'hover:bg-purple-500/20 hover:border-purple-500/40' }
+                { name: 'Voice Assistance', icon: Mic, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', hover: 'hover:bg-amber-500/20 hover:border-amber-500/40', action: () => navigate('/voice') },
+                { name: 'Browse All Schemes', icon: Landmark, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', hover: 'hover:bg-blue-500/20 hover:border-blue-500/40', action: () => navigate('/dashboard/schemes') },
+                { name: 'My Applications', icon: Activity, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', hover: 'hover:bg-emerald-500/20 hover:border-emerald-500/40', action: () => navigate('/dashboard/applications') }
               ].map((service, idx) => (
-                <button key={idx} className={`flex items-center p-4 ${service.bg} rounded-xl transition-all duration-300 border ${service.border} ${service.hover} group hover:-translate-y-0.5 hover:shadow-sm`}>
+                <button 
+                  key={idx} 
+                  onClick={service.action}
+                  className={`flex items-center p-4 ${service.bg} rounded-xl transition-all duration-300 border ${service.border} ${service.hover} group hover:-translate-y-0.5 hover:shadow-sm text-left`}
+                >
                   <div className={`p-2.5 rounded-lg bg-white/50 dark:bg-black/20 ${service.color} mr-4 group-hover:scale-110 transition-transform`}>
                     <service.icon className="h-5 w-5" />
                   </div>
@@ -213,22 +220,58 @@ export const SeniorCitizenDashboard = () => {
             
             <h2 className="text-xl font-bold text-foreground mb-6 relative z-10">My Applications</h2>
             <div className="space-y-4 relative z-10">
-              {applications.map(app => (
-                <div key={app.id} className="p-4 bg-muted/30 rounded-xl border border-border/60 hover:bg-muted/50 transition-colors group hover:shadow-sm">
-                  <h4 className="font-semibold text-base text-foreground mb-3 group-hover:text-primary transition-colors">{app.name}</h4>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground font-medium">{app.id}</span>
-                    <Badge className={`text-xs px-3 py-1 rounded-full shadow-sm border ${
-                      app.status === 'Approved' 
-                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20' 
-                        : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
-                    }`}>
-                      {app.status}
-                    </Badge>
-                  </div>
+              {appsLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-16 w-full rounded-xl" />
+                  <Skeleton className="h-16 w-full rounded-xl" />
                 </div>
-              ))}
+              ) : myApps && myApps.length > 0 ? (
+                myApps.slice(0, 3).map((app: any) => (
+                  <div 
+                    key={app.id} 
+                    onClick={() => navigate(`/dashboard/applications/${app.id}`)}
+                    className="p-4 bg-muted/30 rounded-xl border border-border/60 hover:bg-muted/50 cursor-pointer transition-colors group hover:shadow-sm"
+                  >
+                    <h4 className="font-semibold text-base text-foreground mb-3 group-hover:text-primary transition-colors">
+                      {app.scheme?.name || app.scheme_name || 'Scheme Application'}
+                    </h4>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-mono text-muted-foreground font-medium">{app.application_id}</span>
+                      <Badge className={`text-xs px-3 py-1 rounded-full shadow-sm border ${
+                        app.status === 'APPROVED' 
+                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20' 
+                          : app.status === 'REJECTED'
+                            ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20'
+                            : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
+                      }`}>
+                        {app.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center text-sm text-muted-foreground border border-dashed border-border rounded-xl">
+                  <p>No active applications found.</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => navigate('/dashboard/schemes')}
+                    className="mt-3 text-xs"
+                  >
+                    Explore Senior Schemes
+                  </Button>
+                </div>
+              )}
             </div>
+            {myApps && myApps.length > 0 && (
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/dashboard/applications')}
+                className="w-full mt-4 text-sm font-semibold rounded-xl"
+              >
+                View All Applications
+              </Button>
+            )}
           </Card>
 
         </div>

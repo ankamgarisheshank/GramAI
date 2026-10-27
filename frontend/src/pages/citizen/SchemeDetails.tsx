@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useScheme } from '../../hooks/useSchemes';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
@@ -19,6 +19,12 @@ import {
   Calendar
 } from 'lucide-react';
 import { useCreateApplication } from '../../hooks/useApplications';
+import { 
+  trackSchemeDetailView, 
+  trackApplyClick, 
+  trackApplicationStarted, 
+  trackExternalLinkClick 
+} from '../../lib/analytics';
 
 export const SchemeDetails = () => {
   const { schemeId } = useParams<{ schemeId: string }>();
@@ -28,7 +34,17 @@ export const SchemeDetails = () => {
   const { data: scheme, isLoading, isError } = useScheme(schemeId || '');
   const { mutate: createApplication, isPending: isCreating } = useCreateApplication();
 
+  useEffect(() => {
+    if (scheme?.id) {
+      trackSchemeDetailView(String(scheme.id), scheme.name);
+    }
+  }, [scheme?.id, scheme?.name]);
+
   const handleApplyClick = () => {
+    if (scheme?.id) {
+      trackApplyClick(String(scheme.id), scheme.name);
+      trackApplicationStarted(String(scheme.id), scheme.name);
+    }
     createApplication({ scheme_id: scheme.id, form_data: {} }, {
       onSuccess: (data: any) => {
         navigate(`/dashboard/applications/${data.id}`);
@@ -126,7 +142,14 @@ export const SchemeDetails = () => {
           </Button>
           
           {scheme.official_link ? (
-            <Button variant="outline" className="w-full" onClick={() => window.open(scheme.official_link, '_blank')}>
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => {
+                trackExternalLinkClick(scheme.official_link, scheme.name);
+                window.open(scheme.official_link, '_blank', 'noopener,noreferrer');
+              }}
+            >
               Official Website <ExternalLink className="ml-2 h-4 w-4" />
             </Button>
           ) : (

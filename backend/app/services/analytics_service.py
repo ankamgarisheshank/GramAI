@@ -1,16 +1,47 @@
-from sqlalchemy.orm import Session
+import uuid
+from datetime import datetime, timezone, timedelta
 from collections import defaultdict
+from typing import Optional, List, Dict
+from sqlalchemy import func, distinct
+from sqlalchemy.orm import Session
+
 from app.models.auth import User, Role
 from app.models.scheme import Scheme, SavedSchemes
 from app.models.application import Application
 from app.models.profile import CitizenProfile
 from app.models.location import District
+from app.models.analytics import AnalyticsEvent
+from app.schemas.analytics import AnalyticsEventCreate
 
 class AnalyticsService:
     def __init__(self, db: Session):
         self.db = db
 
+    def record_event(self, data: AnalyticsEventCreate, user_id: Optional[uuid.UUID] = None) -> AnalyticsEvent:
+        """
+        Record a privacy-preserving first-party analytics event.
+        Never stores passwords, tokens, full form data, or PII.
+        """
+        event = AnalyticsEvent(
+            event_type=data.event_type,
+            route=data.route,
+            scheme_id=data.scheme_id,
+            campaign_id=data.campaign_id,
+            session_id=data.session_id,
+            user_id=user_id,
+            label=data.label
+        )
+        self.db.add(event)
+        self.db.commit()
+        self.db.refresh(event)
+        return event
+
     def get_dashboard_metrics(self) -> dict:
+        now = datetime.now(timezone.utc)
+        one_day_ago = now - timedelta(days=1)
+        one_week_ago = now - timedelta(days=7)
+        thirty_days_ago = now - timedelta(days=30)
+
         total_applications = self.db.query(Application).count()
         submitted_applications = self.db.query(Application).filter(Application.status.in_(["SUBMITTED", "Pending"])).count()
         under_review_applications = self.db.query(Application).filter(Application.status == "UNDER_REVIEW").count()
@@ -25,6 +56,126 @@ class AnalyticsService:
         total_citizens = self.db.query(User).filter(User.role_id == 4).count()
         total_officers = self.db.query(User).filter(User.role_id.in_([1, 2, 3])).count()
         total_saved = self.db.query(SavedSchemes).count()
+
+        # Persona Demographics
+        farmer_count = (
+            self.db.query(CitizenProfile)
+            .join(User, CitizenProfile.user_id == User.id)
+            .filter(User.role_id == 4, CitizenProfile.occupation.ilike("%farmer%"))
+            .count()
+        )
+        student_count = (
+            self.db.query(CitizenProfile)
+            .join(User, CitizenProfile.user_id == User.id)
+            .filter(User.role_id == 4, CitizenProfile.occupation.ilike("%student%"))
+            .count()
+        )
+        senior_count = (
+            self.db.query(CitizenProfile)
+            .join(User, CitizenProfile.user_id == User.id)
+            .filter(User.role_id == 4, CitizenProfile.occupation.ilike("%senior%"))
+            .count()
+        )
+        general_citizen_count = max(0, total_citizens - (farmer_count + student_count + senior_count))
+
+        # User Registrations by time
+        registrations_today = (
+            self.db.query(User)
+            .filter(User.created_at >= one_day_ago)
+            .count()
+        )
+        registrations_this_week = (
+            self.db.query(User)
+            .filter(User.created_at >= one_week_ago)
+            .count()
+        )
+        registrations_this_month = (
+            self.db.query(User)
+            .filter(User.created_at >= thirty_days_ago)
+            .count()
+        )
+
+        # Distinct active authenticated users in last 24h (from analytics events or recent submissions)
+        active_event_users = {
+            row[0] for row in (
+                self.db.query(AnalyticsEvent.user_id)
+                .filter(AnalyticsEvent.user_id.isnot(None), AnalyticsEvent.created_at >= one_day_ago)
+                .distinct()
+                .all()
+            )
+        }
+        active_app_users = {
+            row[0] for row in (
+                self.db.query(Application.user_id)
+                .filter(Application.created_at >= one_day_ago)
+                .distinct()
+                .all()
+            )
+        }
+        active_reg_users = {
+            row[0] for row in (
+                self.db.query(User.id)
+                .filter(User.created_at >= one_day_ago)
+                .distinct()
+                .all()
+            )
+        }
+        active_users_24h = len(active_event_users | active_app_users | active_reg_users)
+
+        # Analytics Events Metrics
+        try:
+            total_page_views = self.db.query(AnalyticsEvent).filter(AnalyticsEvent.event_type == "page_view").count()
+            unique_sessions_count = (
+                self.db.query(func.count(distinct(AnalyticsEvent.session_id)))
+                .filter(AnalyticsEvent.session_id.isnot(None))
+                .scalar() or 0
+            )
+            scheme_detail_views = self.db.query(AnalyticsEvent).filter(AnalyticsEvent.event_type == "scheme_detail_view").count()
+            apply_clicks = self.db.query(AnalyticsEvent).filter(AnalyticsEvent.event_type == "apply_button_click").count()
+            external_link_clicks = self.db.query(AnalyticsEvent).filter(AnalyticsEvent.event_type == "external_link_click").count()
+
+            # Event counts breakdown
+            event_counts_raw = (
+                self.db.query(AnalyticsEvent.event_type, func.count(AnalyticsEvent.id))
+                .group_by(AnalyticsEvent.event_type)
+                .all()
+            )
+            engagement_by_event = {row[0]: row[1] for row in event_counts_raw}
+
+            # Top viewed schemes from real event records
+            top_schemes_raw = (
+                self.db.query(AnalyticsEvent.scheme_id, func.count(AnalyticsEvent.id))
+                .filter(AnalyticsEvent.event_type.in_(["scheme_detail_view", "apply_button_click"]), AnalyticsEvent.scheme_id.isnot(None))
+                .group_by(AnalyticsEvent.scheme_id)
+                .order_by(func.count(AnalyticsEvent.id).desc())
+                .limit(5)
+                .all()
+            )
+            top_viewed_schemes = []
+            for s_id, total_interactions in top_schemes_raw:
+                scheme_obj = self.db.query(Scheme).filter(Scheme.id == s_id).first()
+                scheme_name = scheme_obj.name if scheme_obj else f"Scheme #{s_id}"
+                views = self.db.query(AnalyticsEvent).filter(AnalyticsEvent.scheme_id == s_id, AnalyticsEvent.event_type == "scheme_detail_view").count()
+                clicks = self.db.query(AnalyticsEvent).filter(AnalyticsEvent.scheme_id == s_id, AnalyticsEvent.event_type == "apply_button_click").count()
+                top_viewed_schemes.append({
+                    "scheme_id": str(s_id),
+                    "scheme_name": scheme_name,
+                    "views": views,
+                    "apply_clicks": clicks
+                })
+
+            earliest_event = self.db.query(AnalyticsEvent.created_at).order_by(AnalyticsEvent.created_at.asc()).first()
+            tracking_started_at = earliest_event[0].isoformat() if earliest_event and earliest_event[0] else now.isoformat()
+        except Exception:
+            # Table might not exist yet before first migration
+            total_page_views = 0
+            unique_sessions_count = 0
+            scheme_detail_views = 0
+            apply_clicks = 0
+            external_link_clicks = 0
+            top_viewed_schemes = []
+            engagement_by_event = {}
+            tracking_started_at = now.isoformat()
 
         status_counts = {
             "DRAFT": draft_applications,
@@ -122,4 +273,27 @@ class AnalyticsService:
             "recent_applications": recent_applications,
             "application_trends": application_trends,
             "district_distribution": district_distribution,
+
+            # Persona Demographics
+            "farmer_accounts": farmer_count,
+            "student_accounts": student_count,
+            "senior_accounts": senior_count,
+            "general_citizen_accounts": general_citizen_count,
+
+            # User Activity
+            "registrations_today": registrations_today,
+            "registrations_this_week": registrations_this_week,
+            "registrations_this_month": registrations_this_month,
+            "active_users_24h": active_users_24h,
+
+            # Scheme Engagement
+            "total_page_views": total_page_views,
+            "unique_sessions": unique_sessions_count,
+            "scheme_detail_views": scheme_detail_views,
+            "apply_clicks": apply_clicks,
+            "external_link_clicks": external_link_clicks,
+            "top_viewed_schemes": top_viewed_schemes,
+            "engagement_by_event": engagement_by_event,
+            "last_updated": now.isoformat(),
+            "tracking_started_at": tracking_started_at,
         }

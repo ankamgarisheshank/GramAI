@@ -2,8 +2,16 @@ import axios from 'axios';
 
 const getBaseURL = () => {
   const envUrl = import.meta.env.VITE_API_URL;
-  if (!envUrl) return 'http://localhost:8000/api/v1';
-  return envUrl.endsWith('/api/v1') ? envUrl : `${envUrl.replace(/\/$/, '')}/api/v1`;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    const clean = envUrl.trim();
+    return clean.endsWith('/api/v1') ? clean : `${clean.replace(/\/$/, '')}/api/v1`;
+  }
+  // In production builds, default to deployed Render production backend to prevent breaking live Vercel deployments
+  if (import.meta.env.PROD) {
+    return 'https://gramai-backend-p44j.onrender.com/api/v1';
+  }
+  // Local development fallback only
+  return 'http://localhost:8000/api/v1';
 };
 
 const api = axios.create({
@@ -224,6 +232,13 @@ export interface DistrictDistributionItem {
   pending: number;
 }
 
+export interface TopSchemeEngagement {
+  scheme_id?: string;
+  scheme_name: string;
+  views: number;
+  apply_clicks: number;
+}
+
 export interface DashboardMetrics {
   total_applications: number;
   submitted_applications: number;
@@ -241,6 +256,29 @@ export interface DashboardMetrics {
   recent_applications: RecentApplicationSummary[];
   application_trends: MonthlyTrendItem[];
   district_distribution: DistrictDistributionItem[];
+
+  // Persona Demographics
+  farmer_accounts?: number;
+  student_accounts?: number;
+  senior_accounts?: number;
+  general_citizen_accounts?: number;
+
+  // User Activity
+  registrations_today?: number;
+  registrations_this_week?: number;
+  registrations_this_month?: number;
+  active_users_24h?: number;
+
+  // First-Party Scheme Engagement
+  total_page_views?: number;
+  unique_sessions?: number;
+  scheme_detail_views?: number;
+  apply_clicks?: number;
+  external_link_clicks?: number;
+  top_viewed_schemes?: TopSchemeEngagement[];
+  engagement_by_event?: Record<string, number>;
+  last_updated?: string;
+  tracking_started_at?: string;
 }
 
 export const AnalyticsAPI = {

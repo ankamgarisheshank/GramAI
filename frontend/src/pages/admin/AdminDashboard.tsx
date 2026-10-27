@@ -1,24 +1,28 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminDashboard } from '../../hooks/useAdminDashboard';
-import { Card, CardContent } from '../../components/ui/Card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../../components/ui/Alert';
-import { Chart } from '../../components/custom/Chart';
 import { 
-  Users, FileText, CheckCircle, Clock, 
-  MapPin, Activity, Search,
-  TrendingUp, ShieldAlert, BarChart3, ChevronRight,
-  ClipboardList, Globe, Shield, Terminal, RefreshCw, AlertCircle
+  ResponsiveContainer, BarChart, Bar, LineChart, Line, 
+  XAxis, YAxis, Tooltip, Legend, CartesianGrid, PieChart, Pie, Cell 
+} from 'recharts';
+import { 
+  Users, FileText, CheckCircle2, Clock, XCircle, FileEdit,
+  TrendingUp, Shield, RefreshCw, AlertCircle, Search, ExternalLink,
+  Eye, MousePointer, Activity, UserCheck, Calendar, Filter,
+  ArrowUpRight, BarChart3, Layers
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [activeTab, setActiveTab] = useState<'overview' | 'engagement' | 'applications'>('overview');
 
   const { data, isLoading, isError, error, refetch, isFetching } = useAdminDashboard();
 
@@ -26,629 +30,642 @@ export const AdminDashboard: React.FC = () => {
   const filteredApplications = useMemo(() => {
     if (!data?.recent_applications) return [];
     return data.recent_applications.filter((app) => {
-      const matchesSearch = !searchQuery.trim() || 
-        app.application_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.applicant_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.scheme_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.status?.toLowerCase().includes(searchQuery.toLowerCase());
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch = !q || 
+        app.application_id?.toLowerCase().includes(q) ||
+        app.applicant_name?.toLowerCase().includes(q) ||
+        app.scheme_name?.toLowerCase().includes(q) ||
+        app.status?.toLowerCase().includes(q);
 
       const matchesStatus = statusFilter === 'ALL' || app.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [data?.recent_applications, searchQuery, statusFilter]);
 
-  // Chart data from real trends or fallback
-  const chartData = useMemo(() => {
-    if (data?.application_trends && data.application_trends.length > 0) {
-      return data.application_trends;
-    }
-    if (data) {
-      return [
-        { month: 'Current', applications: data.total_applications, approved: data.approved_applications }
-      ];
-    }
-    return [];
+  // Persona pie/bar data
+  const personaChartData = useMemo(() => {
+    if (!data) return [];
+    return [
+      { name: 'Farmers', count: data.farmer_accounts || 0, color: '#10b981' },
+      { name: 'Students', count: data.student_accounts || 0, color: '#3b82f6' },
+      { name: 'Senior Citizens', count: data.senior_accounts || 0, color: '#f59e0b' },
+      { name: 'General Citizens', count: data.general_citizen_accounts || 0, color: '#6366f1' },
+    ];
+  }, [data]);
+
+  // Application status distribution
+  const statusPieData = useMemo(() => {
+    if (!data) return [];
+    return [
+      { name: 'Approved', value: data.approved_applications || 0, color: '#10b981' },
+      { name: 'Submitted', value: data.submitted_applications || 0, color: '#3b82f6' },
+      { name: 'Under Review', value: data.under_review_applications || 0, color: '#8b5cf6' },
+      { name: 'Drafts', value: data.draft_applications || 0, color: '#64748b' },
+      { name: 'Rejected', value: data.rejected_applications || 0, color: '#ef4444' },
+    ].filter(item => item.value > 0);
   }, [data]);
 
   // Status badge styling
-  const getStatusBadge = (status: string) => {
+  const renderStatusBadge = (status: string) => {
     switch (status) {
       case 'SUBMITTED':
       case 'Pending':
-        return (
-          <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30 font-mono text-xs">
-            Submitted
-          </Badge>
-        );
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 text-xs">Submitted</Badge>;
       case 'UNDER_REVIEW':
-        return (
-          <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/30 font-mono text-xs">
-            Under Review
-          </Badge>
-        );
+        return <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 text-xs">Under Review</Badge>;
       case 'APPROVED':
-        return (
-          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-mono text-xs">
-            Approved
-          </Badge>
-        );
+        return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs">Approved</Badge>;
       case 'REJECTED':
-        return (
-          <Badge variant="outline" className="bg-rose-500/10 text-rose-400 border-rose-500/30 font-mono text-xs">
-            Rejected
-          </Badge>
-        );
+        return <Badge variant="outline" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 text-xs">Rejected</Badge>;
       case 'DRAFT':
-        return (
-          <Badge variant="outline" className="bg-slate-700/50 text-slate-400 border-slate-600 font-mono text-xs">
-            Draft
-          </Badge>
-        );
+        return <Badge variant="outline" className="bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/30 text-xs">Draft</Badge>;
       default:
-        return <Badge variant="outline" className="font-mono text-xs">{status}</Badge>;
+        return <Badge variant="outline" className="text-xs">{status}</Badge>;
     }
   };
 
-  return (
-    <div className="dark bg-slate-950 min-h-screen text-slate-50 p-6 md:p-8 -m-6 md:-m-8 font-sans animate-in fade-in duration-700">
-      <div className="max-w-[90rem] mx-auto space-y-8">
-        
-        {/* COMMAND CENTER HEADER */}
-        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center bg-slate-900/50 backdrop-blur-2xl p-8 rounded-3xl border border-slate-800 shadow-[0_0_40px_rgba(0,0,0,0.5)] relative overflow-hidden group">
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>
-          
-          {/* Neon Gradients */}
-          <div className="absolute -top-32 -left-32 w-64 h-64 bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none group-hover:bg-indigo-500/30 transition-colors"></div>
-          <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none translate-y-1/2"></div>
-          
-          <div className="relative z-10 space-y-4">
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="bg-indigo-500/10 text-indigo-300 border-indigo-500/30 backdrop-blur-md px-3 py-1 font-mono tracking-widest text-xs uppercase shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-                <Shield className="w-3 h-3 mr-2 inline" /> GovOps Command Center
-              </Badge>
-              <span className="flex items-center text-xs font-mono text-slate-400 bg-slate-800/50 px-2 py-1 rounded border border-slate-700/50">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
-                LIVE METRICS
-              </span>
-            </div>
-            
-            <h1 className="text-4xl md:text-5xl font-bold font-heading tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-              Admin & Officer Dashboard
-            </h1>
-            
-            <div className="flex flex-wrap items-center gap-4 text-slate-300 text-sm font-medium mt-2 font-mono">
-              <div className="flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-700/50 shadow-inner">
-                <Globe className="h-4 w-4 text-blue-400" />
-                Jurisdiction: <span className="text-emerald-400">Telangana Statewide</span>
-              </div>
-              <div className="flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-700/50 shadow-inner">
-                <Activity className="h-4 w-4 text-emerald-400" />
-                Pipeline Active: <span className="text-emerald-400">{data ? data.submitted_applications + data.under_review_applications : '—'}</span>
-              </div>
-            </div>
-          </div>
+  // Error State with Retry
+  if (isError) {
+    return (
+      <div className="max-w-6xl mx-auto space-y-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-5 w-5" />
+          <AlertTitle>Analytics Connectivity Error</AlertTitle>
+          <AlertDescription>
+            {error instanceof Error ? error.message : 'Unable to connect to production analytics service.'}
+          </AlertDescription>
+        </Alert>
+        <div className="flex gap-3">
+          <Button onClick={() => refetch()} className="gap-2">
+            <RefreshCw className="h-4 w-4" /> Retry Connection
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/admin/applications')}>
+            Go to Application Queue
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-          <div className="relative z-10 flex flex-col sm:flex-row gap-4 mt-8 xl:mt-0 w-full xl:w-auto">
-            <div className="relative group/input">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within/input:text-indigo-400 transition-colors" />
-              <Input 
-                placeholder="Search ID, citizen, scheme..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 h-12 bg-slate-900/80 border-slate-700 text-slate-100 placeholder:text-slate-500 w-full sm:w-[320px] focus-visible:ring-indigo-500/50 focus-visible:border-indigo-500/50 transition-all font-mono text-sm rounded-xl shadow-inner"
-              />
-            </div>
-            <Button 
-              onClick={() => refetch()} 
-              disabled={isFetching}
-              variant="outline"
-              className="h-12 bg-slate-800/80 text-slate-200 hover:bg-slate-700 hover:text-white border-slate-700 transition-all rounded-xl shadow-md"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin text-indigo-400' : ''}`} />
-              Refresh
-            </Button>
+  return (
+    <div className="max-w-7xl mx-auto space-y-6 font-sans">
+      {/* HEADER & OPERATIONS STRIP */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card border border-border p-5 rounded-2xl shadow-sm">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              Operations & Analytics Command Center
+            </h1>
+            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs">
+              Live DB
+            </Badge>
           </div>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Production metrics across citizens, welfare schemes, officer reviews, and user engagement.
+          </p>
         </div>
 
-        {/* ERROR STATE */}
-        {isError && (
-          <Alert variant="destructive" className="bg-rose-950/40 border-rose-800 text-rose-200">
-            <AlertCircle className="h-5 w-5" />
-            <AlertTitle className="font-semibold text-lg">Failed to Load Dashboard Data</AlertTitle>
-            <AlertDescription className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <span>{error instanceof Error ? error.message : 'Unable to connect to analytics services.'}</span>
-              <Button 
-                onClick={() => refetch()} 
-                size="sm" 
-                variant="outline"
-                className="bg-rose-900/60 border-rose-700 text-rose-100 hover:bg-rose-800 shrink-0"
-              >
-                Retry Connection
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
+        <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
+          <div className="text-right hidden sm:block">
+            <p className="text-[11px] text-muted-foreground uppercase font-medium">Last Synchronized</p>
+            <p className="text-xs font-mono font-semibold text-foreground">
+              {data?.last_updated ? new Date(data.last_updated).toLocaleTimeString() : 'Live'}
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => refetch()} 
+            disabled={isFetching}
+            className="gap-2 text-xs h-9"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+            <span>{isFetching ? 'Refreshing...' : 'Refresh'}</span>
+          </Button>
+        </div>
+      </div>
 
-        {/* LOADING STATE */}
-        {isLoading && (
-          <div className="space-y-8">
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="bg-slate-900/40 border-slate-800 p-6 rounded-2xl">
-                  <Skeleton className="h-4 w-24 bg-slate-800 mb-4" />
-                  <Skeleton className="h-9 w-16 bg-slate-800 mb-3" />
-                  <Skeleton className="h-3 w-32 bg-slate-800/60" />
-                </Card>
-              ))}
-            </div>
-            <div className="grid gap-8 lg:grid-cols-3">
-              <div className="lg:col-span-2 space-y-8">
-                <Skeleton className="h-64 bg-slate-900/40 border border-slate-800 rounded-3xl" />
-                <Skeleton className="h-80 bg-slate-900/40 border border-slate-800 rounded-3xl" />
-              </div>
-              <div className="space-y-8">
-                <Skeleton className="h-64 bg-slate-900/40 border border-slate-800 rounded-3xl" />
-                <Skeleton className="h-64 bg-slate-900/40 border border-slate-800 rounded-3xl" />
-              </div>
+      {/* DASHBOARD NAVIGATION TABS */}
+      <div className="flex items-center gap-2 border-b border-border pb-2 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            activeTab === 'overview'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          }`}
+        >
+          System Overview
+        </button>
+        <button
+          onClick={() => setActiveTab('engagement')}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            activeTab === 'engagement'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          }`}
+        >
+          <MousePointer className="h-3.5 w-3.5" />
+          Scheme Engagement & Visits
+        </button>
+        <button
+          onClick={() => setActiveTab('applications')}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            activeTab === 'applications'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          }`}
+        >
+          <FileText className="h-3.5 w-3.5" />
+          Application Operations ({data?.total_applications ?? 0})
+        </button>
+      </div>
+
+      {/* LOADING SKELETON */}
+      {isLoading && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-xl" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Skeleton className="h-72 w-full rounded-2xl" />
+            <Skeleton className="h-72 w-full rounded-2xl" />
+          </div>
+        </div>
+      )}
+
+      {/* TAB 1: SYSTEM OVERVIEW */}
+      {!isLoading && activeTab === 'overview' && data && (
+        <div className="space-y-6">
+          {/* SECTION A: KEY METRIC CARDS */}
+          <div>
+            <h2 className="text-xs uppercase font-bold text-muted-foreground tracking-wider mb-3">
+              Citizen & Administrative Accounts
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+              <Card className="p-4 border-border bg-card">
+                <p className="text-xs text-muted-foreground font-medium">Total Registered</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{data.total_users}</p>
+                <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+                  <UserCheck className="h-3 w-3 text-emerald-500" /> Active: {data.active_users_24h} (24h)
+                </p>
+              </Card>
+
+              <Card className="p-4 border-border bg-card">
+                <p className="text-xs text-muted-foreground font-medium">Total Citizens</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{data.total_citizens}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Role 4 Citizens</p>
+              </Card>
+
+              <Card className="p-4 border-emerald-500/20 bg-emerald-500/5">
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Farmers</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{data.farmer_accounts}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">PM-Kisan / Rythu</p>
+              </Card>
+
+              <Card className="p-4 border-blue-500/20 bg-blue-500/5">
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Students</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{data.student_accounts}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Scholarships</p>
+              </Card>
+
+              <Card className="p-4 border-amber-500/20 bg-amber-500/5">
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Senior Citizens</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{data.senior_accounts}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Pensions & Health</p>
+              </Card>
+
+              <Card className="p-4 border-indigo-500/20 bg-indigo-500/5">
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">General Citizens</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{data.general_citizen_accounts}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Welfare & Services</p>
+              </Card>
+
+              <Card className="p-4 border-purple-500/20 bg-purple-500/5">
+                <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Auth Officers</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{data.total_officers}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Mandal / Village</p>
+              </Card>
             </div>
           </div>
-        )}
 
-        {/* REAL METRICS GRID */}
-        {!isLoading && data && (
-          <>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-              
-              {/* Card 1: Total Applications */}
-              <Card className="bg-slate-900/40 backdrop-blur-xl border-slate-800 shadow-xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 rounded-2xl">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-                <CardContent className="p-5">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <p className="text-xs font-mono uppercase tracking-wider text-slate-400">Total Apps</p>
-                      <h3 className="text-3xl font-bold font-heading text-slate-100 mt-1">
-                        {data.total_applications.toLocaleString()}
-                      </h3>
-                    </div>
-                    <div className="bg-blue-500/10 p-2.5 rounded-xl border border-blue-500/20 group-hover:scale-110 transition-all shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-                      <FileText className="h-5 w-5 text-blue-400" />
-                    </div>
-                  </div>
-                  <div className="flex items-center text-xs font-mono text-slate-400">
-                    <span className="text-indigo-400 font-semibold mr-1">{data.draft_applications}</span> drafts recorded
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Card 2: Submitted & Pending */}
-              <Card 
-                onClick={() => navigate('/admin/pending')}
-                className="bg-slate-900/40 backdrop-blur-xl border-slate-800 shadow-xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 rounded-2xl cursor-pointer"
-              >
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-orange-400"></div>
-                <CardContent className="p-5">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <p className="text-xs font-mono uppercase tracking-wider text-slate-400">Submitted</p>
-                      <h3 className="text-3xl font-bold font-heading text-amber-400 mt-1 drop-shadow-[0_0_10px_rgba(245,158,11,0.3)]">
-                        {data.submitted_applications.toLocaleString()}
-                      </h3>
-                    </div>
-                    <div className="bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 group-hover:scale-110 transition-all shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                      <Clock className="h-5 w-5 text-amber-400" />
-                    </div>
-                  </div>
-                  <div className="flex items-center text-xs font-mono text-amber-300/80">
-                    Awaiting officer review →
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Card 3: Under Review */}
-              <Card 
-                onClick={() => navigate('/admin/verification')}
-                className="bg-slate-900/40 backdrop-blur-xl border-slate-800 shadow-xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 rounded-2xl cursor-pointer"
-              >
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                <CardContent className="p-5">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <p className="text-xs font-mono uppercase tracking-wider text-slate-400">Under Review</p>
-                      <h3 className="text-3xl font-bold font-heading text-purple-300 mt-1">
-                        {data.under_review_applications.toLocaleString()}
-                      </h3>
-                    </div>
-                    <div className="bg-purple-500/10 p-2.5 rounded-xl border border-purple-500/20 group-hover:scale-110 transition-all shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-                      <Activity className="h-5 w-5 text-purple-400" />
-                    </div>
-                  </div>
-                  <div className="flex items-center text-xs font-mono text-purple-300/80">
-                    In verification queue →
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Card 4: Approved */}
-              <Card 
-                onClick={() => navigate('/admin/approvals')}
-                className="bg-slate-900/40 backdrop-blur-xl border-slate-800 shadow-xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 rounded-2xl cursor-pointer"
-              >
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
-                <CardContent className="p-5">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <p className="text-xs font-mono uppercase tracking-wider text-slate-400">Approved</p>
-                      <h3 className="text-3xl font-bold font-heading text-emerald-400 mt-1 drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                        {data.approved_applications.toLocaleString()}
-                      </h3>
-                    </div>
-                    <div className="bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20 group-hover:scale-110 transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                      <CheckCircle className="h-5 w-5 text-emerald-400" />
-                    </div>
-                  </div>
-                  <div className="flex items-center text-xs font-mono text-emerald-300/80">
-                    Beneficiaries eligible →
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Card 5: Rejected */}
-              <Card 
-                onClick={() => navigate('/admin/rejections')}
-                className="bg-slate-900/40 backdrop-blur-xl border-slate-800 shadow-xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 rounded-2xl cursor-pointer"
-              >
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-red-600"></div>
-                <CardContent className="p-5">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <p className="text-xs font-mono uppercase tracking-wider text-slate-400">Rejected</p>
-                      <h3 className="text-3xl font-bold font-heading text-rose-400 mt-1">
-                        {data.rejected_applications.toLocaleString()}
-                      </h3>
-                    </div>
-                    <div className="bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/20 group-hover:scale-110 transition-all shadow-[0_0_15px_rgba(244,63,94,0.2)]">
-                      <ShieldAlert className="h-5 w-5 text-rose-400" />
-                    </div>
-                  </div>
-                  <div className="flex items-center text-xs font-mono text-rose-300/80">
-                    Remarks documented →
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Card 6: Schemes & Citizens */}
-              <Card 
-                onClick={() => navigate('/admin/schemes')}
-                className="bg-slate-900/40 backdrop-blur-xl border-slate-800 shadow-xl relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 rounded-2xl cursor-pointer"
-              >
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-500"></div>
-                <CardContent className="p-5">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <p className="text-xs font-mono uppercase tracking-wider text-slate-400">Schemes / Citizens</p>
-                      <h3 className="text-3xl font-bold font-heading text-cyan-300 mt-1">
-                        {data.active_schemes} <span className="text-lg font-normal text-slate-400">/ {data.total_citizens}</span>
-                      </h3>
-                    </div>
-                    <div className="bg-cyan-500/10 p-2.5 rounded-xl border border-cyan-500/20 group-hover:scale-110 transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-                      <Users className="h-5 w-5 text-cyan-400" />
-                    </div>
-                  </div>
-                  <div className="flex items-center text-xs font-mono text-slate-400">
-                    <span className="text-cyan-400 font-semibold mr-1">{data.total_schemes}</span> total schemes in DB
-                  </div>
-                </CardContent>
-              </Card>
-
-            </div>
-
-            <div className="grid gap-8 lg:grid-cols-3">
-              
-              {/* LEFT MAIN COLUMN: Charts & Applications */}
-              <div className="lg:col-span-2 space-y-8">
-                
-                {/* Charts Row */}
-                <div className="grid md:grid-cols-2 gap-8">
-                  {/* Real Approval Trends */}
-                  <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-6 rounded-3xl shadow-xl hover:border-slate-700 transition-colors">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <Activity className="h-5 w-5 text-indigo-400" />
-                        <h3 className="text-lg font-semibold text-slate-200">Application Trends</h3>
-                      </div>
-                      <Badge variant="outline" className="text-xs font-mono text-indigo-400 border-indigo-500/30">
-                        Monthly
-                      </Badge>
-                    </div>
-                    {chartData.length > 0 ? (
-                      <Chart 
-                        title=""
-                        data={chartData}
-                        xAxisDataKey="month"
-                        series={[
-                          { dataKey: "applications", color: "#6366f1", name: "Received" },
-                          { dataKey: "approved", color: "#10b981", name: "Approved" }
-                        ]}
-                        height={220}
-                      />
-                    ) : (
-                      <div className="h-[220px] flex items-center justify-center text-sm font-mono text-slate-500">
-                        No monthly trend data recorded yet.
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Real Geographical Distribution */}
-                  <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-6 rounded-3xl shadow-xl hover:border-slate-700 transition-colors flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <MapPin className="h-5 w-5 text-blue-400" /> 
-                          <h3 className="text-lg font-semibold text-slate-200">District Distribution</h3>
-                        </div>
-                        <Badge variant="outline" className="text-xs font-mono text-blue-400 border-blue-500/30">
-                          Live Data
-                        </Badge>
-                      </div>
-
-                      {/* District Listing */}
-                      <div className="space-y-3 mt-4">
-                        {data.district_distribution.slice(0, 3).map((dist, idx) => (
-                          <div 
-                            key={dist.district_name}
-                            className="flex items-center justify-between p-3 bg-slate-950/60 rounded-xl border border-slate-800"
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className={`w-2.5 h-2.5 rounded-full ${idx === 0 ? 'bg-indigo-400 animate-pulse' : 'bg-slate-600'}`}></span>
-                              <span className="text-sm font-medium text-slate-200">{dist.district_name}</span>
-                            </div>
-                            <div className="flex items-center gap-3 font-mono text-xs">
-                              <span className="text-slate-400">{dist.total_applications} apps</span>
-                              <span className="bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded border border-amber-500/20">
-                                {dist.pending} pending
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono text-slate-400">
-                      <span>Total Active Districts: {data.district_distribution.length}</span>
-                      <span className="text-emerald-400">Statewide Coverage</span>
-                    </div>
-                  </div>
+          {/* APPLICATION & SCHEME METRICS */}
+          <div>
+            <h2 className="text-xs uppercase font-bold text-muted-foreground tracking-wider mb-3">
+              Application Pipeline & Scheme Status
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+              <Card className="p-3.5 border-border bg-card">
+                <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-medium">
+                  <FileText className="h-3.5 w-3.5" /> Total Apps
                 </div>
+                <p className="text-xl font-bold text-foreground mt-1">{data.total_applications}</p>
+              </Card>
 
-                {/* Real Applications Queue Table */}
-                <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-xl overflow-hidden flex flex-col">
-                  <div className="p-6 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900/80">
-                    <div className="flex items-center gap-3">
-                      <ClipboardList className="h-5 w-5 text-indigo-400" />
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-200">Recent Applications</h3>
-                        <p className="text-xs text-slate-400 font-mono mt-0.5">Real-time database records</p>
-                      </div>
-                    </div>
-                    
-                    {/* Status Filter Badges */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      {['ALL', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'].map((st) => (
-                        <button
-                          key={st}
-                          onClick={() => setStatusFilter(st)}
-                          className={`text-xs font-mono px-3 py-1 rounded-lg border transition-all ${
-                            statusFilter === st 
-                              ? 'bg-indigo-600 text-white border-indigo-500 shadow-md' 
-                              : 'bg-slate-800/60 text-slate-400 border-slate-700 hover:text-slate-200'
-                          }`}
-                        >
-                          {st === 'ALL' ? 'All' : st.replace('_', ' ')}
-                        </button>
+              <Card className="p-3.5 border-slate-500/20 bg-slate-500/5">
+                <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 text-xs font-medium">
+                  <FileEdit className="h-3.5 w-3.5" /> Drafts
+                </div>
+                <p className="text-xl font-bold text-foreground mt-1">{data.draft_applications}</p>
+              </Card>
+
+              <Card className="p-3.5 border-blue-500/20 bg-blue-500/5">
+                <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 text-xs font-medium">
+                  <Clock className="h-3.5 w-3.5" /> Submitted
+                </div>
+                <p className="text-xl font-bold text-foreground mt-1">{data.submitted_applications}</p>
+              </Card>
+
+              <Card className="p-3.5 border-purple-500/20 bg-purple-500/5">
+                <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 text-xs font-medium">
+                  <Activity className="h-3.5 w-3.5" /> Under Review
+                </div>
+                <p className="text-xl font-bold text-foreground mt-1">{data.under_review_applications}</p>
+              </Card>
+
+              <Card className="p-3.5 border-emerald-500/20 bg-emerald-500/5">
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Approved
+                </div>
+                <p className="text-xl font-bold text-foreground mt-1">{data.approved_applications}</p>
+              </Card>
+
+              <Card className="p-3.5 border-rose-500/20 bg-rose-500/5">
+                <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 text-xs font-medium">
+                  <XCircle className="h-3.5 w-3.5" /> Rejected
+                </div>
+                <p className="text-xl font-bold text-foreground mt-1">{data.rejected_applications}</p>
+              </Card>
+
+              <Card className="p-3.5 border-border bg-card">
+                <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-medium">
+                  <Layers className="h-3.5 w-3.5" /> Total Schemes
+                </div>
+                <p className="text-xl font-bold text-foreground mt-1">{data.total_schemes}</p>
+              </Card>
+
+              <Card className="p-3.5 border-emerald-500/20 bg-card">
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Active Schemes
+                </div>
+                <p className="text-xl font-bold text-foreground mt-1">{data.active_schemes}</p>
+              </Card>
+            </div>
+          </div>
+
+          {/* VISUAL CHARTS ROW */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Monthly Application & Approval Trends */}
+            <Card className="p-5 border-border bg-card">
+              <CardHeader className="p-0 mb-4">
+                <CardTitle className="text-base font-semibold text-foreground flex items-center justify-between">
+                  <span>Application Volume & Approval Trends</span>
+                  <Badge variant="outline" className="text-[11px] font-normal">Real Monthly Data</Badge>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Actual historical volume of scheme applications and officer approvals.
+                </CardDescription>
+              </CardHeader>
+              <div className="h-64 w-full">
+                {data.application_trends && data.application_trends.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.application_trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.6} />
+                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                      <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
+                      <Legend wrapperStyle={{ fontSize: '12px' }} />
+                      <Bar dataKey="applications" name="Total Applications" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="approved" name="Approved" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                    No historical trend records found.
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Persona Distribution Chart */}
+            <Card className="p-5 border-border bg-card">
+              <CardHeader className="p-0 mb-4">
+                <CardTitle className="text-base font-semibold text-foreground flex items-center justify-between">
+                  <span>Citizen Persona Breakdown</span>
+                  <Badge variant="outline" className="text-[11px] font-normal">Verified Profiles</Badge>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Distribution of registered citizen accounts across farmer, student, senior, and general personas.
+                </CardDescription>
+              </CardHeader>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={personaChartData} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" opacity={0.6} />
+                    <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} width={100} />
+                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
+                    <Bar dataKey="count" name="Accounts" radius={[0, 4, 4, 0]}>
+                      {personaChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
-                      <Button 
-                        onClick={() => navigate('/admin/pending')}
-                        variant="outline" 
-                        size="sm" 
-                        className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white text-xs ml-2"
-                      >
-                        Full Queue →
-                      </Button>
-                    </div>
-                  </div>
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
 
-                  <div className="overflow-x-auto p-4">
-                    {filteredApplications.length === 0 ? (
-                      <div className="py-12 text-center text-slate-400 font-mono text-sm">
-                        No applications match the current search or status filter.
-                      </div>
-                    ) : (
-                      <table className="w-full text-sm text-left border-separate border-spacing-y-2">
-                        <thead className="text-xs text-slate-500 uppercase tracking-wider font-mono">
-                          <tr>
-                            <th className="px-6 py-3 font-semibold">Application ID</th>
-                            <th className="px-6 py-3 font-semibold">Citizen</th>
-                            <th className="px-6 py-3 font-semibold">Scheme</th>
-                            <th className="px-6 py-3 font-semibold">Status</th>
-                            <th className="px-6 py-3 font-semibold">Submitted / Created</th>
-                            <th className="px-6 py-3 font-semibold text-right">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredApplications.map((app) => (
-                            <tr key={app.id} className="bg-slate-900/40 hover:bg-slate-800/80 transition-colors group">
-                              <td className="px-6 py-4 rounded-l-xl">
-                                <span className="font-mono text-indigo-300 font-medium group-hover:text-indigo-400 transition-colors">
-                                  {app.application_id}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 font-medium text-slate-200">{app.applicant_name}</td>
-                              <td className="px-6 py-4 text-slate-400 max-w-[200px] truncate">{app.scheme_name}</td>
-                              <td className="px-6 py-4">
-                                {getStatusBadge(app.status)}
-                              </td>
-                              <td className="px-6 py-4 text-xs font-mono text-slate-400">
-                                {app.submitted_at 
-                                  ? new Date(app.submitted_at).toLocaleDateString() 
-                                  : app.created_at 
-                                    ? new Date(app.created_at).toLocaleDateString()
-                                    : '—'}
-                              </td>
-                              <td className="px-6 py-4 rounded-r-xl text-right">
-                                <Button 
-                                  onClick={() => navigate(`/admin/applications/${app.id}`)}
-                                  size="sm" 
-                                  className="h-8 bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500 hover:text-white border border-indigo-500/50 shadow-sm transition-all"
-                                >
-                                  Review
-                                </Button>
-                              </td>
-                            </tr>
+          {/* SECTION B: REGISTRATION VELOCITY & DISTRICTS */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="p-5 border-border bg-card md:col-span-1">
+              <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
+                <Calendar className="h-4 w-4 text-primary" />
+                <span>Registration Velocity</span>
+              </CardTitle>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 rounded-lg bg-muted/40 border border-border/50">
+                  <span className="text-xs text-muted-foreground">Last 24 Hours</span>
+                  <span className="text-sm font-bold text-foreground">+{data.registrations_today}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-lg bg-muted/40 border border-border/50">
+                  <span className="text-xs text-muted-foreground">Last 7 Days</span>
+                  <span className="text-sm font-bold text-foreground">+{data.registrations_this_week}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-lg bg-muted/40 border border-border/50">
+                  <span className="text-xs text-muted-foreground">Last 30 Days</span>
+                  <span className="text-sm font-bold text-foreground">+{data.registrations_this_month}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Active Citizens (24h)</span>
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{data.active_users_24h}</span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Application Status Pipeline Donut */}
+            <Card className="p-5 border-border bg-card md:col-span-2">
+              <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
+                <Activity className="h-4 w-4 text-primary" />
+                <span>Application Lifecycle Distribution</span>
+              </CardTitle>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                <div className="h-44 w-full">
+                  {statusPieData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={statusPieData}
+                          innerRadius={45}
+                          outerRadius={70}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {statusPieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
+                        </Pie>
+                        <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+                      No status data available.
+                    </div>
+                  )}
                 </div>
-
+                <div className="space-y-2 text-xs">
+                  {statusPieData.map((s) => (
+                    <div key={s.name} className="flex items-center justify-between p-1.5 rounded border border-border/40">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                        <span className="text-muted-foreground">{s.name}</span>
+                      </div>
+                      <span className="font-semibold text-foreground">{s.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
+            </Card>
+          </div>
+        </div>
+      )}
 
-              {/* RIGHT COLUMN: Real Pipeline Status & Quick Navigation */}
-              <div className="space-y-8">
-                
-                {/* Real Pipeline Distribution */}
-                <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-xl p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <Terminal className="h-5 w-5 text-emerald-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">Pipeline Status Breakdown</h3>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between text-sm p-3 bg-slate-950/50 rounded-xl border border-slate-800">
-                      <span className="flex items-center gap-2 text-slate-300">
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                        Submitted / Awaiting Review
-                      </span>
-                      <span className="font-mono font-bold text-blue-400">{data.submitted_applications}</span>
-                    </div>
+      {/* TAB 2: SCHEME ENGAGEMENT & FIRST-PARTY VISITS */}
+      {!isLoading && activeTab === 'engagement' && data && (
+        <div className="space-y-6">
+          <div className="bg-card border border-border p-5 rounded-2xl">
+            <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+              <MousePointer className="h-4 w-4 text-primary" />
+              First-Party Website Visit & Interaction Telemetry
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Privacy-preserving event metrics collected directly by the GramAI backend without third-party trackers or PII collection.
+            </p>
 
-                    <div className="flex items-center justify-between text-sm p-3 bg-slate-950/50 rounded-xl border border-slate-800">
-                      <span className="flex items-center gap-2 text-slate-300">
-                        <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-                        Under Active Review
-                      </span>
-                      <span className="font-mono font-bold text-purple-400">{data.under_review_applications}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-sm p-3 bg-slate-950/50 rounded-xl border border-slate-800">
-                      <span className="flex items-center gap-2 text-slate-300">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                        Approved Applications
-                      </span>
-                      <span className="font-mono font-bold text-emerald-400">{data.approved_applications}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-sm p-3 bg-slate-950/50 rounded-xl border border-slate-800">
-                      <span className="flex items-center gap-2 text-slate-300">
-                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                        Rejected Applications
-                      </span>
-                      <span className="font-mono font-bold text-rose-400">{data.rejected_applications}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-sm p-3 bg-slate-950/50 rounded-xl border border-slate-800">
-                      <span className="flex items-center gap-2 text-slate-300">
-                        <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-                        Citizen Drafts
-                      </span>
-                      <span className="font-mono font-bold text-slate-400">{data.draft_applications}</span>
-                    </div>
-                  </div>
-
-                  <Button 
-                    onClick={() => navigate('/admin/pending')}
-                    variant="ghost" 
-                    className="w-full mt-6 text-sm text-slate-400 border border-dashed border-slate-700 hover:bg-slate-800 hover:text-slate-200 hover:border-slate-600 transition-all"
-                  >
-                    Manage Entire Pipeline →
-                  </Button>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-4">
+              <Card className="p-4 bg-muted/30 border-border">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                  <Eye className="h-3.5 w-3.5" /> Total Page Views
                 </div>
+                <p className="text-2xl font-bold text-foreground mt-1">{data.total_page_views}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">First-party telemetry</p>
+              </Card>
 
-                {/* Real Quick Workflows */}
-                <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-xl p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <BarChart3 className="h-5 w-5 text-blue-400" />
-                    <h3 className="text-lg font-semibold text-slate-200">Officer Workspaces</h3>
-                  </div>
-                  <div className="space-y-4">
-                    <button 
-                      onClick={() => navigate('/admin/pending')}
-                      className="w-full flex items-center justify-between p-4 bg-slate-900/40 hover:bg-slate-800/80 rounded-2xl border border-slate-800 hover:border-slate-700 transition-all group shadow-sm text-left"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="bg-slate-800 p-2.5 rounded-xl border border-slate-700 group-hover:border-slate-600 transition-all">
-                          <Clock className="h-5 w-5 text-amber-400 transition-colors" />
-                        </div>
-                        <div>
-                          <span className="text-sm font-semibold text-slate-300 group-hover:text-slate-100 transition-colors block">
-                            Pending Verification Queue
-                          </span>
-                          <span className="text-xs text-slate-500 font-mono">
-                            {data.submitted_applications} applications pending review
-                          </span>
-                        </div>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-slate-600 group-hover:text-amber-400 group-hover:translate-x-1 transition-all" />
-                    </button>
-
-                    <button 
-                      onClick={() => navigate('/admin/approvals')}
-                      className="w-full flex items-center justify-between p-4 bg-slate-900/40 hover:bg-slate-800/80 rounded-2xl border border-slate-800 hover:border-slate-700 transition-all group shadow-sm text-left"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="bg-slate-800 p-2.5 rounded-xl border border-slate-700 group-hover:border-slate-600 transition-all">
-                          <CheckCircle className="h-5 w-5 text-emerald-400 transition-colors" />
-                        </div>
-                        <div>
-                          <span className="text-sm font-semibold text-slate-300 group-hover:text-slate-100 transition-colors block">
-                            Approved Applications
-                          </span>
-                          <span className="text-xs text-slate-500 font-mono">
-                            {data.approved_applications} sanctioned cases
-                          </span>
-                        </div>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-slate-600 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
-                    </button>
-
-                    <button 
-                      onClick={() => navigate('/admin/schemes')}
-                      className="w-full flex items-center justify-between p-4 bg-slate-900/40 hover:bg-slate-800/80 rounded-2xl border border-slate-800 hover:border-slate-700 transition-all group shadow-sm text-left"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="bg-slate-800 p-2.5 rounded-xl border border-slate-700 group-hover:border-slate-600 transition-all">
-                          <Shield className="h-5 w-5 text-cyan-400 transition-colors" />
-                        </div>
-                        <div>
-                          <span className="text-sm font-semibold text-slate-300 group-hover:text-slate-100 transition-colors block">
-                            Scheme Management
-                          </span>
-                          <span className="text-xs text-slate-500 font-mono">
-                            {data.active_schemes} active schemes configured
-                          </span>
-                        </div>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
-                    </button>
-                  </div>
+              <Card className="p-4 bg-muted/30 border-border">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                  <Users className="h-3.5 w-3.5" /> Unique Sessions
                 </div>
+                <p className="text-2xl font-bold text-foreground mt-1">{data.unique_sessions}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Pseudonymous sessions</p>
+              </Card>
 
-              </div>
+              <Card className="p-4 bg-muted/30 border-border">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                  <FileText className="h-3.5 w-3.5" /> Scheme Detail Views
+                </div>
+                <p className="text-2xl font-bold text-foreground mt-1">{data.scheme_detail_views}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Deep inspections</p>
+              </Card>
+
+              <Card className="p-4 bg-muted/30 border-border">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                  <MousePointer className="h-3.5 w-3.5" /> Apply Clicks
+                </div>
+                <p className="text-2xl font-bold text-foreground mt-1">{data.apply_clicks}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Intent to apply</p>
+              </Card>
+
+              <Card className="p-4 bg-muted/30 border-border">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                  <ExternalLink className="h-3.5 w-3.5" /> External Link Clicks
+                </div>
+                <p className="text-2xl font-bold text-foreground mt-1">{data.external_link_clicks}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Outbound gov portals</p>
+              </Card>
             </div>
-          </>
-        )}
+          </div>
 
-      </div>
+          {/* TOP VIEWED SCHEMES TABLE */}
+          <Card className="border-border bg-card">
+            <CardHeader className="p-5 border-b border-border">
+              <CardTitle className="text-base font-semibold text-foreground flex items-center justify-between">
+                <span>Top Engaged Government Schemes</span>
+                <Badge variant="outline" className="text-xs font-normal">Real Interaction Records</Badge>
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Actual scheme inspection counts and apply clicks recorded from citizen visits.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {data.top_viewed_schemes && data.top_viewed_schemes.length > 0 ? (
+                <div className="divide-y divide-border text-sm">
+                  {data.top_viewed_schemes.map((scheme, i) => (
+                    <div key={scheme.scheme_id || i} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                      <div className="space-y-0.5">
+                        <p className="font-semibold text-foreground">{scheme.scheme_name}</p>
+                        <p className="text-xs text-muted-foreground">Scheme ID: {scheme.scheme_id || 'N/A'}</p>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Views</p>
+                          <p className="font-bold text-foreground">{scheme.views}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Apply Clicks</p>
+                          <p className="font-bold text-emerald-600 dark:text-emerald-400">{scheme.apply_clicks}</p>
+                        </div>
+                        {scheme.scheme_id && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => navigate(`/dashboard/schemes/${scheme.scheme_id}`)}
+                            className="text-xs"
+                          >
+                            <ArrowUpRight className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-xs text-muted-foreground">
+                  <p>Telemetry event collection began with this deployment.</p>
+                  <p className="mt-1">Events will appear as citizens view schemes and click apply buttons.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* TAB 3: APPLICATION OPERATIONS & LIVE TABLE */}
+      {!isLoading && activeTab === 'applications' && data && (
+        <div className="space-y-6">
+          <Card className="border-border bg-card">
+            <CardHeader className="p-5 border-b border-border">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <CardTitle className="text-base font-semibold text-foreground">
+                    Live Application Operations
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                    Real applications submitted by citizens, awaiting or completed review by authorized officers.
+                  </CardDescription>
+                </div>
+
+                {/* FILTERS */}
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search ID, applicant, scheme..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-8 h-9 text-xs"
+                    />
+                  </div>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="h-9 px-3 rounded-lg border border-border bg-card text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="SUBMITTED">Submitted</option>
+                    <option value="UNDER_REVIEW">Under Review</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="REJECTED">Rejected</option>
+                    <option value="DRAFT">Draft</option>
+                  </select>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              {filteredApplications.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] font-semibold border-b border-border">
+                      <tr>
+                        <th className="py-3 px-4">Application ID</th>
+                        <th className="py-3 px-4">Applicant</th>
+                        <th className="py-3 px-4">Scheme</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4">Submitted Date</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {filteredApplications.map((app) => (
+                        <tr key={app.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="py-3 px-4 font-mono font-medium text-foreground">
+                            {app.application_id}
+                          </td>
+                          <td className="py-3 px-4 font-medium text-foreground">
+                            {app.applicant_name}
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground max-w-[200px] truncate">
+                            {app.scheme_name}
+                          </td>
+                          <td className="py-3 px-4">
+                            {renderStatusBadge(app.status)}
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground">
+                            {app.submitted_at 
+                              ? new Date(app.submitted_at).toLocaleDateString() 
+                              : app.created_at 
+                                ? new Date(app.created_at).toLocaleDateString() 
+                                : 'Draft'}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/admin/applications/${app.id}`)}
+                              className="h-7 text-xs px-2.5"
+                            >
+                              Inspect / Review
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-10 text-center text-xs text-muted-foreground">
+                  <FileText className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+                  <p className="font-medium text-foreground">No applications found matching criteria.</p>
+                  <p className="mt-1">Try adjusting your search query or status filter.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

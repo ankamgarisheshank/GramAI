@@ -9,6 +9,7 @@ import { useSchemes, useApplications, useApplyScheme } from '../../hooks/useSche
 import { useMarketPrices, useWeather } from '../../hooks/useAgriculture';
 import { VoiceAssistant } from '../../components/custom/VoiceAssistant';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/Dialog';
+import { trackApplyClick, trackExternalLinkClick } from '../../lib/analytics';
 import { 
   Tractor, CloudSun, MapPin, Droplets, ArrowRight, BookOpen,
   Sprout, Wind, TrendingUp, FileText, CheckCircle, Clock, PlayCircle,
@@ -52,6 +53,7 @@ export const FarmerDashboard = () => {
   };
 
   const handleApply = (schemeId: string) => {
+    trackApplyClick(schemeId);
     applyMutation.mutate(schemeId);
   };
 
@@ -64,7 +66,7 @@ export const FarmerDashboard = () => {
   const currentDate = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 font-sans pb-24">
+    <div className="max-w-7xl mx-auto space-y-8 font-sans pb-24 px-4 sm:px-6 lg:px-8">
 
       {/* ═══════════════════════════════════════════ */}
       {/* HERO HEADER                                */}
@@ -297,6 +299,7 @@ export const FarmerDashboard = () => {
                               href={scheme.official_link} 
                               target="_blank" 
                               rel="noopener noreferrer"
+                              onClick={() => trackExternalLinkClick(scheme.official_link, scheme.id)}
                               className="text-xs font-medium text-primary hover:underline flex items-center gap-1 w-full sm:w-auto"
                             >
                               <ExternalLink className="h-3.5 w-3.5" /> Official Portal

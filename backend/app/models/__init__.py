@@ -6,3 +6,4 @@ from app.models.communication import Notification, Conversation, Message
 from app.models.data import WeatherCache, MarketPrice
 from app.models.application import Application
 from app.models.document import Document
+from app.models.analytics import AnalyticsEvent

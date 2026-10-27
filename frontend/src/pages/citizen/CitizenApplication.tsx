@@ -9,6 +9,7 @@ import { Alert, AlertTitle, AlertDescription } from '../../components/ui/Alert';
 import { useToast } from '../../components/ui/Toast';
 import { CheckCircle2, ArrowLeft, Upload, Trash2, FileText, AlertCircle, Eye, Check, Clock, Save } from 'lucide-react';
 import api from '../../lib/api';
+import { trackApplicationSubmitted } from '../../lib/analytics';
 
 export const CitizenApplication = () => {
   const { applicationId } = useParams<{ applicationId: string }>();
@@ -125,6 +126,9 @@ export const CitizenApplication = () => {
         onSuccess: () => {
           submitMutation.mutate(application.id, {
             onSuccess: () => {
+              if (application.scheme_id) {
+                trackApplicationSubmitted(String(application.scheme_id), application.application_id);
+              }
               toast({ title: 'Application Submitted!', description: 'Your application has been received.', type: 'success' });
             },
             onError: (err: any) => {

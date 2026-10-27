@@ -1,13 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { useSchemes } from '../../hooks/useSchemes';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/Alert';
 import { Link } from 'react-router-dom';
+import { trackSchemeListView } from '../../lib/analytics';
 
 export const CitizenSchemes = () => {
   // Using 'all' to show a comprehensive list, could be tailored further.
   const { data: schemes, isLoading, isError } = useSchemes('all');
+
+  useEffect(() => {
+    trackSchemeListView();
+  }, []);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">

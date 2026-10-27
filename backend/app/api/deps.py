@@ -57,3 +57,27 @@ class RequireOfficerOrAdmin:
             return current_user
         raise AppException("Not enough permissions to access this resource", status_code=403)
 
+from fastapi import Request
+from typing import Optional
+
+def get_optional_current_user(
+    request: Request,
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """Extract authenticated user if valid Bearer token is provided, without raising 401 if missing."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return None
+    token = auth_header.split(" ", 1)[1]
+    payload = decode_token(token)
+    if not payload:
+        return None
+    user_id = payload.get("sub")
+    if not user_id:
+        return None
+    try:
+        import uuid
+        return db.query(User).filter(User.id == uuid.UUID(user_id), User.is_active == True).first()
+    except Exception:
+        return None
+

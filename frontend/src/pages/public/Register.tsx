@@ -15,6 +15,7 @@ import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import { GovEmblem } from '../../components/custom/GovEmblem';
 import { useGoogleLogin } from '@react-oauth/google';
+import { trackRegistrationSuccess } from '../../lib/analytics';
 
 export const Register = () => {
   const [step, setStep] = useState(1);
@@ -106,6 +107,9 @@ export const Register = () => {
       };
 
       await AuthAPI.register(requestData);
+      
+      // Track registration event (non-blocking)
+      trackRegistrationSuccess();
       
       localStorage.setItem('user_type', persona);
       

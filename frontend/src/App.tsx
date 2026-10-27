@@ -1,10 +1,11 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { PublicLayout } from './layouts/PublicLayout';
 import { CitizenLayout } from './layouts/CitizenLayout';
 import { AdminLayout } from './layouts/AdminLayout';
 import { Toaster } from './components/ui/Toast';
 import { useAuthStore } from './store/authStore';
+import { trackPageView } from './lib/analytics';
 
 // Lazy loading pages for better performance
 const Landing = lazy(() => import('./pages/public/Landing').then(m => ({ default: m.Landing })));
@@ -63,10 +64,19 @@ const PageSkeleton = () => (
   </div>
 );
 
+const RouteTracker = () => {
+  const location = useLocation();
+  React.useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location.pathname]);
+  return null;
+};
+
 function App() {
   return (
     <>
       <BrowserRouter>
+        <RouteTracker />
         <Suspense fallback={<PageSkeleton />}>
           <Routes>
             <Route path="/" element={<PublicLayout />}>

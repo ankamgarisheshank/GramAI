@@ -52,6 +52,9 @@ export const useSubmitApplication = () => {
       queryClient.invalidateQueries({ queryKey: ['application', applicationId] });
       queryClient.invalidateQueries({ queryKey: ['myApplications'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['adminDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['adminApplications'] });
+      queryClient.invalidateQueries({ queryKey: ['officerApplications'] });
     },
   });
 };

@@ -14,6 +14,7 @@ import { GovEmblem } from '../../components/custom/GovEmblem';
 import { useGoogleLogin } from '@react-oauth/google';
 
 import { queryClient } from '../../lib/queryClient';
+import { trackLoginSuccess } from '../../lib/analytics';
 
 export const Login = () => {
   const [showPassword, setShowPassword] = React.useState(false);
@@ -43,6 +44,9 @@ export const Login = () => {
     if (user?.persona) {
       localStorage.setItem('user_type', user.persona);
     }
+
+    // 4. Track successful login event (non-blocking)
+    trackLoginSuccess();
 
     // 4. Authorize based on verified backend role_id:
     // Role 1 = Super Admin -> /admin/dashboard
