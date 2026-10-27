@@ -12,7 +12,11 @@ STORAGE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__fil
 os.makedirs(STORAGE_DIR, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
-ALLOWED_MIME_TYPES = {"application/pdf", "image/jpeg", "image/png"}
+ALLOWED_MIME_TYPES = {
+    "application/pdf", "application/x-pdf", "application/acrobat",
+    "image/jpeg", "image/jpg", "image/pjpeg", "image/png", "image/x-png",
+    "application/octet-stream"
+}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 class DocumentService:
@@ -27,8 +31,9 @@ class DocumentService:
         if ext not in ALLOWED_EXTENSIONS:
             raise AppException(f"Unsupported file extension. Allowed: {', '.join(ALLOWED_EXTENSIONS)}", status_code=400)
             
-        if file.content_type not in ALLOWED_MIME_TYPES:
-            raise AppException(f"Unsupported MIME type. Allowed: {', '.join(ALLOWED_MIME_TYPES)}", status_code=400)
+        content_type = (file.content_type or "").lower()
+        if content_type and content_type not in ALLOWED_MIME_TYPES and ext not in ALLOWED_EXTENSIONS:
+            raise AppException(f"Unsupported MIME type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}", status_code=400)
 
         # Check file size
         file.file.seek(0, 2)
@@ -72,7 +77,21 @@ class DocumentService:
             
         self.validate_file(file)
         
-        storage_filename = self.generate_storage_filename(app.application_id, file.filename)
+        # Replace any existing document of the same type
+        norm_type = document_type.strip().rstrip('.').lower()
+        existing_docs = self.db.query(Document).filter(Document.application_id == app.id).all()
+        for ed in existing_docs:
+            if ed.document_type.strip().rstrip('.').lower() == norm_type:
+                old_filepath = os.path.join(STORAGE_DIR, ed.stored_filename)
+                if os.path.exists(old_filepath):
+                    try:
+                        os.remove(old_filepath)
+                    except Exception:
+                        pass
+                self.db.delete(ed)
+        self.db.flush()
+
+        storage_filename = self.generate_storage_filename(app.application_id or str(app.id)[:8], file.filename)
         
         file.file.seek(0, 2)
         file_size = file.file.tell()

@@ -104,9 +104,7 @@ export const VoiceAPI = {
   transcribe: (audioBlob: Blob) => {
     const formData = new FormData();
     formData.append('file', audioBlob);
-    return api.post('/voice/transcribe', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    return api.post('/voice/transcribe', formData);
   },
   synthesize: (text: string) => api.post('/voice/synthesize', { text }),
   chat: (query: string) => api.post('/chat', { query })
@@ -157,9 +155,7 @@ export const ApplicationsAPI = {
     const formData = new FormData();
     formData.append('document_type', documentType);
     formData.append('file', file);
-    return api.post(`/applications/${id}/documents`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    return api.post(`/applications/${id}/documents`, formData);
   },
   getDocuments: (id: string) => api.get(`/applications/${id}/documents`),
   deleteDocument: (applicationId: string, documentId: string) => api.delete(`/applications/${applicationId}/documents/${documentId}`),
@@ -191,6 +187,10 @@ export const OfficerAPI = {
 export const AdminAPI = {
   getApplications: (params?: { status?: string; scheme_id?: string; search?: string; skip?: number; limit?: number }) =>
     api.get('/admin/applications', { params }),
+  getCitizens: (params?: { persona?: string; search?: string }) => 
+    api.get('/admin/citizens', { params }),
+  getUserAccount: (userId: string) => 
+    api.get(`/admin/users/${userId}/account`),
 };
 
 export interface NotificationItem {
@@ -213,6 +213,7 @@ export interface RecentApplicationSummary {
   application_id: string;
   scheme_name: string;
   applicant_name: string;
+  user_id?: string;
   status: string;
   created_at?: string;
   submitted_at?: string;
@@ -284,6 +285,36 @@ export interface DashboardMetrics {
 export const AnalyticsAPI = {
   getDashboard: () => api.get('/analytics/dashboard'),
 };
+
+export interface CitizenUserDetail {
+  id: string;
+  email?: string;
+  phone_number?: string;
+  full_name?: string;
+  persona: string;
+  district?: string;
+  village?: string;
+  application_count: number;
+  created_at?: string;
+  last_active?: string;
+  is_active: boolean;
+}
+
+export interface UserAccountResponse {
+  user: CitizenUserDetail;
+  applications: Array<{
+    id: string;
+    application_id: string;
+    scheme_id?: string;
+    scheme_name: string;
+    status: string;
+    created_at?: string;
+    submitted_at?: string;
+    reviewed_at?: string;
+    decision_at?: string;
+    document_count: number;
+  }>;
+}
 
 export default api;
 

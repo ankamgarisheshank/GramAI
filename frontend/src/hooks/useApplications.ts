@@ -66,6 +66,8 @@ export const useUploadDocument = () => {
       ApplicationsAPI.uploadDocument(applicationId, documentType, file),
     onSuccess: (_, { applicationId }) => {
       queryClient.invalidateQueries({ queryKey: ['applicationDocuments', applicationId] });
+      queryClient.invalidateQueries({ queryKey: ['application', applicationId] });
+      queryClient.invalidateQueries({ queryKey: ['myApplications'] });
     },
   });
 };
@@ -75,7 +77,7 @@ export const useApplicationDocuments = (applicationId: string) => {
     queryKey: ['applicationDocuments', applicationId],
     queryFn: async () => {
       const { data } = await ApplicationsAPI.getDocuments(applicationId);
-      return data; // Not standard response wrapped per my API design for this endpoint
+      return Array.isArray(data) ? data : (data?.data || []);
     },
     enabled: !!applicationId,
   });

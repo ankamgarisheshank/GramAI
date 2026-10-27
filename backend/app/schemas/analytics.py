@@ -44,6 +44,7 @@ class RecentApplicationSummary(BaseModel):
     application_id: str
     scheme_name: str
     applicant_name: str
+    user_id: Optional[UUID] = None
     status: str
     created_at: Optional[datetime] = None
     submitted_at: Optional[datetime] = None

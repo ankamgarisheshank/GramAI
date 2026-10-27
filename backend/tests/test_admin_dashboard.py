@@ -162,3 +162,34 @@ def test_7_admin_applications_endpoint_role_security(test_users):
     assert adm_resp.status_code == 200
     assert adm_resp.json()["success"] is True
     assert isinstance(adm_resp.json()["data"], list)
+
+
+def test_8_admin_citizens_directory_and_account_inspection(test_users):
+    """Admin can query citizen personas directory and view detailed citizen account dossier."""
+    # 1. Citizen cannot access /admin/citizens
+    cit_resp = client.get("/api/v1/admin/citizens", headers={"Authorization": f"Bearer {test_users['citizen_token']}"})
+    assert cit_resp.status_code == 403
+
+    # 2. Admin can list citizens with persona filters
+    adm_resp = client.get("/api/v1/admin/citizens", headers={"Authorization": f"Bearer {test_users['admin_token']}"})
+    assert adm_resp.status_code == 200
+    data = adm_resp.json()
+    assert data["success"] is True
+    assert isinstance(data["data"], list)
+    if len(data["data"]) > 0:
+        first = data["data"][0]
+        assert "id" in first
+        assert "persona" in first
+        assert "application_count" in first
+
+    # 3. Admin can inspect account dossier of citizen
+    cit_id = str(test_users["citizen"].id)
+    acc_resp = client.get(f"/api/v1/admin/users/{cit_id}/account", headers={"Authorization": f"Bearer {test_users['admin_token']}"})
+    assert acc_resp.status_code == 200
+    acc_data = acc_resp.json()
+    assert acc_data["success"] is True
+    assert "user" in acc_data["data"]
+    assert acc_data["data"]["user"]["id"] == cit_id
+    assert "applications" in acc_data["data"]
+    assert isinstance(acc_data["data"]["applications"], list)
+

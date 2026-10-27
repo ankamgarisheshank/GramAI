@@ -15,16 +15,42 @@ import {
   Users, FileText, CheckCircle2, Clock, XCircle, FileEdit,
   TrendingUp, Shield, RefreshCw, AlertCircle, Search, ExternalLink,
   Eye, MousePointer, Activity, UserCheck, Calendar, Filter,
-  ArrowUpRight, BarChart3, Layers
+  ArrowUpRight, BarChart3, Layers, Tractor, GraduationCap, Heart, UserCircle
 } from 'lucide-react';
+import { CitizenAccountModal } from '../../components/admin/CitizenAccountModal';
+import { AdminAPI, type CitizenUserDetail } from '../../lib/api';
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [activeTab, setActiveTab] = useState<'overview' | 'engagement' | 'applications'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'engagement' | 'applications' | 'citizens'>('overview');
+  
+  // Citizen inspection modal states
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [citizenModalOpen, setCitizenModalOpen] = useState(false);
+
+  // Citizen Directory states
+  const [citizenPersonaFilter, setCitizenPersonaFilter] = useState<string>('ALL');
+  const [citizenSearch, setCitizenSearch] = useState<string>('');
+  const [citizensList, setCitizensList] = useState<CitizenUserDetail[]>([]);
+  const [citizensLoading, setCitizensLoading] = useState(false);
 
   const { data, isLoading, isError, error, refetch, isFetching } = useAdminDashboard();
+
+  // Fetch Citizens directory on demand
+  React.useEffect(() => {
+    if (activeTab === 'citizens') {
+      setCitizensLoading(true);
+      AdminAPI.getCitizens({
+        persona: citizenPersonaFilter === 'ALL' ? undefined : citizenPersonaFilter,
+        search: citizenSearch || undefined
+      })
+        .then((res: any) => setCitizensList(res.data.data || []))
+        .catch(() => setCitizensList([]))
+        .finally(() => setCitizensLoading(false));
+    }
+  }, [activeTab, citizenPersonaFilter, citizenSearch]);
 
   // Filter recent applications by search term and status
   const filteredApplications = useMemo(() => {
@@ -178,6 +204,17 @@ export const AdminDashboard: React.FC = () => {
         >
           <FileText className="h-3.5 w-3.5" />
           Application Operations ({data?.total_applications ?? 0})
+        </button>
+        <button
+          onClick={() => setActiveTab('citizens')}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            activeTab === 'citizens'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          }`}
+        >
+          <Users className="h-3.5 w-3.5" />
+          Citizen Directory & Personas ({data?.total_citizens ?? 0})
         </button>
       </div>
 
@@ -622,10 +659,27 @@ export const AdminDashboard: React.FC = () => {
                       {filteredApplications.map((app) => (
                         <tr key={app.id} className="hover:bg-muted/30 transition-colors">
                           <td className="py-3 px-4 font-mono font-medium text-foreground">
-                            {app.application_id}
+                            <button
+                              onClick={() => navigate(`/admin/applications/${app.id}`)}
+                              className="hover:text-primary hover:underline transition-colors text-left"
+                            >
+                              {app.application_id}
+                            </button>
                           </td>
                           <td className="py-3 px-4 font-medium text-foreground">
-                            {app.applicant_name}
+                            <button
+                              onClick={() => {
+                                if (app.user_id) {
+                                  setSelectedUserId(String(app.user_id));
+                                  setCitizenModalOpen(true);
+                                }
+                              }}
+                              className="hover:text-primary transition-colors cursor-pointer text-left font-medium underline decoration-dotted underline-offset-4 flex items-center gap-1"
+                              title="Click to inspect citizen account and all submitted applications"
+                            >
+                              <UserCircle className="h-3.5 w-3.5 text-primary opacity-70" />
+                              <span>{app.applicant_name}</span>
+                            </button>
                           </td>
                           <td className="py-3 px-4 text-muted-foreground max-w-[200px] truncate">
                             {app.scheme_name}
@@ -666,6 +720,232 @@ export const AdminDashboard: React.FC = () => {
           </Card>
         </div>
       )}
+
+      {/* TAB 4: CITIZEN DIRECTORY & PERSONA INSPECTION */}
+      {!isLoading && activeTab === 'citizens' && (
+        <div className="space-y-6">
+          
+          {/* Persona breakdown metric cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <Card 
+              className={`p-4 cursor-pointer transition-all border ${citizenPersonaFilter === 'farmer' ? 'border-emerald-500 bg-emerald-500/10' : 'hover:border-emerald-500/40'}`}
+              onClick={() => setCitizenPersonaFilter(citizenPersonaFilter === 'farmer' ? 'ALL' : 'farmer')}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                  <Tractor className="h-4 w-4 text-emerald-500" /> Farmers
+                </span>
+                <Badge className="bg-emerald-500/15 text-emerald-400 border-0 text-[10px]">Persona</Badge>
+              </div>
+              <p className="text-2xl font-bold font-mono text-foreground mt-2">{data?.farmer_accounts || 0}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Agriculture & subsidy seekers</p>
+            </Card>
+
+            <Card 
+              className={`p-4 cursor-pointer transition-all border ${citizenPersonaFilter === 'student' ? 'border-indigo-500 bg-indigo-500/10' : 'hover:border-indigo-500/40'}`}
+              onClick={() => setCitizenPersonaFilter(citizenPersonaFilter === 'student' ? 'ALL' : 'student')}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                  <GraduationCap className="h-4 w-4 text-indigo-400" /> Students
+                </span>
+                <Badge className="bg-indigo-500/15 text-indigo-400 border-0 text-[10px]">Persona</Badge>
+              </div>
+              <p className="text-2xl font-bold font-mono text-foreground mt-2">{data?.student_accounts || 0}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Scholarships & education</p>
+            </Card>
+
+            <Card 
+              className={`p-4 cursor-pointer transition-all border ${citizenPersonaFilter === 'senior' ? 'border-amber-500 bg-amber-500/10' : 'hover:border-amber-500/40'}`}
+              onClick={() => setCitizenPersonaFilter(citizenPersonaFilter === 'senior' ? 'ALL' : 'senior')}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                  <Heart className="h-4 w-4 text-amber-500" /> Senior Citizens
+                </span>
+                <Badge className="bg-amber-500/15 text-amber-400 border-0 text-[10px]">Persona</Badge>
+              </div>
+              <p className="text-2xl font-bold font-mono text-foreground mt-2">{data?.senior_accounts || 0}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Pension & healthcare schemes</p>
+            </Card>
+
+            <Card 
+              className={`p-4 cursor-pointer transition-all border ${citizenPersonaFilter === 'citizen' ? 'border-blue-500 bg-blue-500/10' : 'hover:border-blue-500/40'}`}
+              onClick={() => setCitizenPersonaFilter(citizenPersonaFilter === 'citizen' ? 'ALL' : 'citizen')}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                  <UserCircle className="h-4 w-4 text-blue-400" /> General Citizens
+                </span>
+                <Badge className="bg-blue-500/15 text-blue-400 border-0 text-[10px]">Persona</Badge>
+              </div>
+              <p className="text-2xl font-bold font-mono text-foreground mt-2">{data?.general_citizen_accounts || 0}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Welfare & housing schemes</p>
+            </Card>
+          </div>
+
+          {/* Directory Card */}
+          <Card className="border-border">
+            <CardHeader className="p-4 sm:p-5 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  Live Citizen Accounts & Identification
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  Click any Citizen ID or applicant name to open their account dossier and inspect all their submitted applications.
+                </CardDescription>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search name, ID, phone, email..."
+                    value={citizenSearch}
+                    onChange={(e) => setCitizenSearch(e.target.value)}
+                    className="pl-8 text-xs h-8 w-full sm:w-64"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                  {['ALL', 'farmer', 'student', 'senior', 'citizen'].map((p) => (
+                    <Button
+                      key={p}
+                      size="sm"
+                      variant={citizenPersonaFilter === p ? 'default' : 'outline'}
+                      onClick={() => setCitizenPersonaFilter(p)}
+                      className="text-xs h-8 capitalize shrink-0"
+                    >
+                      {p === 'ALL' ? 'All Personas' : p}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              {citizensLoading ? (
+                <div className="p-6 space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : citizensList.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] font-semibold border-b border-border">
+                      <tr>
+                        <th className="py-3 px-4">Citizen ID (Click to View)</th>
+                        <th className="py-3 px-4">Full Name</th>
+                        <th className="py-3 px-4">Persona</th>
+                        <th className="py-3 px-4">Contact</th>
+                        <th className="py-3 px-4">Location</th>
+                        <th className="py-3 px-4">Applications</th>
+                        <th className="py-3 px-4">Last Activity</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {citizensList.map((c) => (
+                        <tr key={c.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="py-3 px-4">
+                            <button
+                              onClick={() => {
+                                setSelectedUserId(c.id);
+                                setCitizenModalOpen(true);
+                              }}
+                              className="font-mono text-xs font-semibold text-primary hover:underline flex items-center gap-1 group/btn"
+                              title="Click to view full user account & applications"
+                            >
+                              <Shield className="h-3 w-3 text-primary opacity-70 group-hover/btn:scale-110 transition-transform" />
+                              <span>TG-CIT-{c.id.slice(0, 8).toUpperCase()}</span>
+                            </button>
+                          </td>
+                          <td className="py-3 px-4 font-medium text-foreground">
+                            <button
+                              onClick={() => {
+                                setSelectedUserId(c.id);
+                                setCitizenModalOpen(true);
+                              }}
+                              className="hover:text-primary transition-colors cursor-pointer text-left font-medium underline decoration-dotted underline-offset-4"
+                            >
+                              {c.full_name}
+                            </button>
+                          </td>
+                          <td className="py-3 px-4">
+                            {c.persona === 'farmer' && (
+                              <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px]">
+                                <Tractor className="w-3 h-3 mr-1" /> Farmer
+                              </Badge>
+                            )}
+                            {c.persona === 'student' && (
+                              <Badge className="bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 text-[10px]">
+                                <GraduationCap className="w-3 h-3 mr-1" /> Student
+                              </Badge>
+                            )}
+                            {c.persona === 'senior' && (
+                              <Badge className="bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px]">
+                                <Heart className="w-3 h-3 mr-1" /> Senior Citizen
+                              </Badge>
+                            )}
+                            {c.persona !== 'farmer' && c.persona !== 'student' && c.persona !== 'senior' && (
+                              <Badge className="bg-blue-500/15 text-blue-400 border border-blue-500/30 text-[10px]">
+                                <UserCircle className="w-3 h-3 mr-1" /> General Citizen
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground">
+                            <div>{c.email || c.phone_number || '-'}</div>
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground">
+                            <span>{c.village ? `${c.village}, ` : ''}{c.district || 'Telangana'}</span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge variant="outline" className={`text-[10px] ${c.application_count > 0 ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted-foreground'}`}>
+                              {c.application_count} {c.application_count === 1 ? 'Application' : 'Applications'}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground text-[11px]">
+                            {c.last_active ? new Date(c.last_active).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : 'Recently'}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedUserId(c.id);
+                                setCitizenModalOpen(true);
+                              }}
+                              className="h-7 text-xs px-2.5 gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                            >
+                              Inspect Account
+                              <ArrowUpRight className="h-3 w-3" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-10 text-center text-xs text-muted-foreground">
+                  <Users className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+                  <p className="font-medium text-foreground">No citizen accounts found matching criteria.</p>
+                  <p className="mt-1">Try selecting 'All Personas' or clearing the search query.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Citizen Account Dossier Modal */}
+      <CitizenAccountModal 
+        userId={selectedUserId}
+        open={citizenModalOpen}
+        onOpenChange={setCitizenModalOpen}
+      />
     </div>
   );
 };

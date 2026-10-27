@@ -216,6 +216,7 @@ class AnalyticsService:
                 "application_id": a.application_id,
                 "scheme_name": a.scheme.name if a.scheme else "Unknown Scheme",
                 "applicant_name": applicant_name,
+                "user_id": a.user_id,
                 "status": a.status,
                 "created_at": a.created_at,
                 "submitted_at": a.submitted_at,

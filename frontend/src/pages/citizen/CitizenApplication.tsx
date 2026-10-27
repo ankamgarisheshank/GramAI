@@ -69,19 +69,24 @@ export const CitizenApplication = () => {
   
   const handleUpload = (documentType: string) => {
     const file = selectedFiles[documentType];
-    if (!file) return;
+    if (!file) {
+      toast({ title: 'No File Selected', description: 'Please choose a file first before clicking Upload.', type: 'error' });
+      return;
+    }
     
     uploadMutation.mutate({ applicationId: application.id, documentType, file }, {
       onSuccess: () => {
-        toast({ title: 'Success', description: `${documentType} uploaded successfully.` });
+        toast({ title: 'Upload Successful', description: `${documentType} has been attached to your application.`, type: 'success' });
         setSelectedFiles(prev => {
           const newState = { ...prev };
           delete newState[documentType];
           return newState;
         });
+        refetchDocs();
+        refetch();
       },
       onError: (err: any) => {
-        toast({ title: 'Upload Failed', description: err.response?.data?.message || 'Error uploading file', type: 'error' });
+        toast({ title: 'Upload Failed', description: err.response?.data?.message || err.message || 'Error uploading file. Please ensure file is PDF, PNG, or JPG under 10MB.', type: 'error' });
       }
     });
   };
@@ -152,7 +157,14 @@ export const CitizenApplication = () => {
     ? application.scheme.required_documents.split(',').map((d: string) => d.trim()).filter(Boolean)
     : [];
     
-  const getUploadedDoc = (type: string) => documents?.find((d: any) => d.document_type.toLowerCase() === type.toLowerCase());
+  const getUploadedDoc = (type: string) => {
+    if (!documents || !Array.isArray(documents)) return undefined;
+    const normType = type.trim().replace(/\.+$/, '').toLowerCase();
+    return documents.find((d: any) => {
+      const docTypeNorm = (d.document_type || '').trim().replace(/\.+$/, '').toLowerCase();
+      return docTypeNorm === normType || docTypeNorm.includes(normType) || normType.includes(docTypeNorm);
+    });
+  };
 
   const handleViewDocument = async (docId: string, contentType?: string) => {
     try {
@@ -412,10 +424,26 @@ export const CitizenApplication = () => {
                           </Button>
                         </>
                       ) : (
-                        <div className="flex items-center space-x-2">
-                          <input type="file" className="text-sm" onChange={(e) => handleFileChange(docType, e)} accept=".pdf,.jpg,.jpeg,.png" />
-                          <Button size="sm" disabled={!selectedFiles[docType] || uploadMutation.isPending} onClick={() => handleUpload(docType)}>
-                            <Upload className="h-4 w-4 mr-2" /> Upload
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                          <input 
+                            type="file" 
+                            className="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 text-muted-foreground" 
+                            onChange={(e) => handleFileChange(docType, e)} 
+                            accept=".pdf,.jpg,.jpeg,.png" 
+                          />
+                          {selectedFiles[docType] && (
+                            <span className="text-[11px] font-medium text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded max-w-[140px] truncate" title={selectedFiles[docType].name}>
+                              {selectedFiles[docType].name}
+                            </span>
+                          )}
+                          <Button 
+                            size="sm" 
+                            disabled={!selectedFiles[docType] || uploadMutation.isPending} 
+                            onClick={() => handleUpload(docType)}
+                            className="shrink-0 h-8 text-xs font-semibold"
+                          >
+                            <Upload className="h-3.5 w-3.5 mr-1.5" />
+                            {uploadMutation.isPending && selectedFiles[docType] ? 'Uploading...' : 'Upload'}
                           </Button>
                         </div>
                       )}

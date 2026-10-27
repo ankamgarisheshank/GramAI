@@ -9,8 +9,9 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../../components/ui/Alert';
 import { 
   FileText, Search, Clock, CheckCircle, XCircle, AlertCircle, 
-  ChevronRight, Filter, RefreshCw, MapPin, Eye, ShieldCheck
+  ChevronRight, Filter, RefreshCw, MapPin, Eye, ShieldCheck, UserCircle
 } from 'lucide-react';
+import { CitizenAccountModal } from '../../components/admin/CitizenAccountModal';
 
 interface Props {
   initialStatus?: string;
@@ -24,6 +25,8 @@ export const OfficerApplications: React.FC<Props> = ({
   const navigate = useNavigate();
   const [selectedStatus, setSelectedStatus] = useState<string>(initialStatus || 'ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [userModalOpen, setUserModalOpen] = useState(false);
 
   const { data: applications, isLoading, isError, refetch, isFetching } = useOfficerApplications({
     status: selectedStatus === 'ALL' ? undefined : selectedStatus,
@@ -268,9 +271,22 @@ export const OfficerApplications: React.FC<Props> = ({
                       {app.application_id}
                     </td>
                     <td className="px-5 py-4">
-                      <div className="font-medium text-foreground">{app.applicant_name}</div>
+                      <div 
+                        className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer flex items-center gap-1.5 group/user w-fit"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (app.applicant_id) {
+                            setSelectedUserId(String(app.applicant_id));
+                            setUserModalOpen(true);
+                          }
+                        }}
+                        title="Click to inspect citizen account and all submitted applications"
+                      >
+                        <UserCircle className="h-4 w-4 text-primary group-hover/user:scale-110 transition-transform" />
+                        <span className="underline decoration-dotted underline-offset-4">{app.applicant_name}</span>
+                      </div>
                       {(app.applicant_phone || app.applicant_email) && (
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground pl-5.5">
                           {app.applicant_phone || app.applicant_email}
                         </div>
                       )}
@@ -321,6 +337,13 @@ export const OfficerApplications: React.FC<Props> = ({
           </div>
         </div>
       )}
+
+      {/* Citizen Account Dossier Modal */}
+      <CitizenAccountModal 
+        userId={selectedUserId}
+        open={userModalOpen}
+        onOpenChange={setUserModalOpen}
+      />
     </div>
   );
 };
